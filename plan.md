@@ -1,154 +1,167 @@
-可以。根据课程要求，你的论文最好不是“用 AI 生成一张图”，而是围绕一个明确 CG 过程，设计“传统流程 vs 大模型辅助流程”的实验，并比较质量、控制性、效率和局限。课程文件也明确要求论文包含摘要、引言、相关技术现状、方法设计、实验与对比、结果讨论、参考文献等部分。
+# 结课论文计划：基于神经渲染的图像驱动三维场景重建与传统图形渲染流程对比
 
-我建议你优先选这个题目：
+## 1. 选题定位
 
-**题目建议：基于大语言模型的文本驱动 3D 室内场景布局生成与传统规则方法对比**
+原题“基于大语言模型的文本驱动室内家具布局生成与规则方法对比”更接近自动布局、程序化建模或内容生成，虽然可以纳入计算机图形学讨论，但它的核心矛盾容易落在文本理解和场景语义规划上，图形学过程本身不够突出。新的选题应将问题收束到渲染与三维表示：给定一组同一场景的多视角图像，传统图形学流程通常需要显式几何重建、网格清理、纹理映射、材质与光照设置，再通过光栅化或路径追踪生成新视角；神经渲染则学习一个可微的场景表示，通过体渲染、神经场查询或高斯 splatting 直接合成新视角图像。
 
-这个题目最适合课程论文，因为实现难度可控：不用真正训练 3D 生成模型，只需要让大模型把自然语言描述解析成“场景图 / JSON / Blender Python 参数”，再由传统 CG 工具完成建模、布局和渲染。它也非常符合课程要求中的“场景建模”“大模型参与输入理解与 pipeline 优化”“有无大模型对比”。
+建议论文题目：
 
-### 一、推荐参考论文列表
+**基于神经渲染的图像驱动三维场景重建与传统图形渲染流程对比**
 
-| 类别                 | 论文                                                                                                 | 你可以怎么用                                                                                                |
-| ------------------ | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| LLM + 场景布局         | **LayoutGPT: Compositional Visual Planning and Generation with Large Language Models**             | 这篇最贴近你的题目。它把 LLM 当作 visual planner，把文本条件转成布局，覆盖 2D 图像和 3D 室内场景，适合写“LLM 负责语义理解和空间规划”的理论依据。([arXiv][1]) |
-| LLM + Blender 场景生成 | **An LLM Agent for Synthesizing 3D Scene as Blender Code / SceneCraft**                            | 这篇可以支持你的实现路线：让 LLM 输出 Blender 可执行脚本，完成物体放置、空间关系、材质和渲染设置。([arXiv][2])                                  |
-| 指令驱动 3D 室内场景       | **InstructScene: Instruction-Driven 3D Indoor Scene Synthesis with Semantic Graph Prior**          | 可用于说明“自然语言指令—语义图—布局解码”的方法链路，尤其适合写控制性与空间关系。([arXiv][3])                                                |
-| 布局约束 3D 场景生成       | **SceneCraft: Layout-Guided 3D Scene Generation**                                                  | 适合写“布局约束比纯文本生成更可控”。它用 3D semantic layout 转成多视角 proxy map，再生成 NeRF 场景。([arXiv][4])                     |
-| 语言到 3D 场景          | **SceneTeller: Language-to-3D Scene Generation**                                                   | 可以作为语言驱动 3D 场景生成的近邻工作，适合放在相关工作中补充。([ECVA][5])                                                         |
-| 传统 / 深度场景合成基线      | **ATISS: Autoregressive Transformers for Indoor Scene Synthesis**                                  | 可作为“非 LLM 的学习式室内场景布局方法”参考。它根据房间类型和平面图生成家具布局，适合作为传统 AI/深度学习基线文献。([arXiv][6])                           |
-| 传统 / 深度场景合成基线      | **SceneFormer: Indoor Scene Generation with Transformers**                                         | 可用于说明 LLM 出现前，场景生成常被建模为对象序列生成或布局预测问题。([arXiv][7])                                                     |
-| 程序化建模              | **Procedural Modeling of Buildings**                                                               | 可作为传统 CG 程序化建模代表，说明“规则、语法、参数化建模”的优势与局限。([Peter Wonka][8])                                             |
-| 文本到 3D 场景          | **Text2Room: Extracting Textured 3D Meshes from 2D Text-to-Image Models**                          | 如果你想扩展到“纹理化房间场景”，这篇很有用。它从文本生成多视角图像，再结合深度估计和 inpainting 融合成 textured 3D mesh。([arXiv][9])              |
-| 文本到 3D 物体          | **DreamFusion: Text-to-3D using 2D Diffusion**                                                     | 适合写背景：早期 text-to-3D 通过 2D diffusion prior 和 SDS 绕开大规模 3D 数据不足问题。([arXiv][10])                         |
-| 高质量 text-to-3D     | **Magic3D: High-Resolution Text-to-3D Content Creation**                                           | 可用于说明 text-to-3D 从低分辨率 NeRF 到高分辨率 mesh 的 coarse-to-fine pipeline。([arXiv][11])                        |
-| 高效 3D 生成           | **DreamGaussian: Generative Gaussian Splatting for Efficient 3D Content Creation**                 | 如果你想讨论效率，可以引用它。它用 3D Gaussian Splatting 提高 3D 生成速度，并能输出 textured mesh。([arXiv][12])                   |
-| 条件式 3D 资产生成        | **Shap-E: Generating Conditional 3D Implicit Functions**                                           | 可作为“文本/图像条件生成 3D 资产”的背景文献，尤其适合说明从 prompt 到 3D asset 的生成模型路线。([arXiv][13])                             |
-| 纹理生成               | **TexFusion: Synthesizing 3D Textures with Text-Guided Image Diffusion Models**                    | 如果你的题目改成“AI 辅助材质与纹理生成”，这篇是核心文献。它强调多视角一致性和给定 mesh 的文本引导贴图生成。([arXiv][14])                              |
-| 材质生成               | **ControlMat: A Controlled Generative Approach to Material Capture**                               | 适合材质方向：从单张自然光照片生成可平铺、高分辨率、PBR 材质通道。([arXiv][15])                                                      |
-| 光照生成               | **Text2Light: Zero-Shot Text-Driven HDR Panorama Generation**                                      | 如果你选“AI 辅助光照与渲染设计”，这篇最相关。它根据文本生成 HDR panorama，可用于真实感照明和 VR 场景。([arXiv][16])                           |
-| 几何与外观解耦            | **Fantasia3D: Disentangling Geometry and Appearance for High-quality Text-to-3D Content Creation** | 可用于说明 text-to-3D 中“几何—材质—渲染”分离的重要性，尤其适合讨论可编辑性和 relighting。([arXiv][17])                               |
+可选副标题：
 
-如果你的时间有限，建议重点读这 6 篇：**LayoutGPT、SceneCraft as Blender Code、InstructScene、ATISS、Text2Room、TexFusion 或 Text2Light**。前四篇支撑主线，后两篇用于扩展材质/光照讨论。
+**以 NeRF 与 3D Gaussian Splatting 的新视角合成为例**
 
-### 二、建议论文核心思路
+该题目比“文本驱动布局生成”更贴近课程中的建模、相机、光照、可见性、体渲染、采样、图像合成等知识点，也能自然回答作业要求中的四个核心问题：结果质量、控制性、效率和新局限。
 
-你的论文可以围绕这样一个问题展开：
+## 2. 核心研究问题
 
-**传统 CG 规则流程能否根据自然语言构建合理 3D 场景？引入大语言模型后，是否能提升语义理解、空间关系表达、布局合理性和制作效率？**
+本文不讨论“AI 直接生成一张图片”这一类二维生成问题，而讨论神经渲染如何改变传统三维图形管线。核心问题定义为：
 
-传统方法可以设计成：你预先写一套规则，例如“卧室必须有床、床靠墙、床头柜在床两侧、桌子靠窗、椅子在桌前”。输入只能是结构化参数，比如房间大小、房间类型、家具数量。然后 Blender 脚本根据规则自动摆放模型。
+1. 在多视角图像输入下，传统几何重建加显式渲染流程与神经渲染流程分别如何构建可渲染的三维场景表示？
+2. 神经渲染是否提升新视角合成质量，尤其是在细节纹理、复杂材质、半透明/反光区域和遮挡边界上是否优于传统网格与纹理流程？
+3. 神经渲染是否提高流程效率，包括建模成本、人工处理时间、训练或优化时间、渲染速度和复现实验难度？
+4. 神经渲染是否降低控制性，例如几何结构不显式、材质和光照难以独立编辑、相机外推不稳定、训练视角不足时出现漂浮物或几何不一致？
 
-大模型方法可以设计成：用户输入自然语言，例如“一个小型卧室，床靠左墙，书桌靠窗，椅子在书桌前，地毯位于床边，整体为暖色调”。大模型先把文本解析为 JSON 场景描述，包括物体类别、尺寸、位置、朝向、相对关系、材质风格、光照风格。然后 Blender 脚本读取 JSON，自动生成场景。
+这里的“有无模型”对比应明确为：无神经模型的传统 CG/视觉重建管线，与引入神经场或可微辐射场后的神经渲染管线。NeRF、Instant-NGP、TensoRF、Plenoxels 和 3D Gaussian Splatting 都不是简单的图像生成器，而是学习或优化一个可从连续视角渲染的场景表示。
 
-这样你就不是在写“AI 画图”，而是在构建一个 **自然语言 → 语义场景图 → 3D 布局 → 材质/光照 → 渲染结果** 的 CG pipeline。
+## 3. 相关技术现状的组织方式
 
-### 三、可写的方法设计
+相关技术现状建议分四条线展开，每条线服务后续实验设计，而不是堆论文。
 
-你可以把方法分成四个模块：
+第一条线是传统图形学与图像式重建流程。传统流程依赖显式几何和物理或近似物理的渲染模型：通过 SfM/MVS 获取相机位姿和稠密点云，生成网格，进行纹理映射，再在 Blender、Unity 或其他渲染器中设置材质、光照和相机。该流程的优点是几何、材质和光照具有清晰的编辑接口，缺点是重建破损、反光和细薄结构容易出错，手工清理成本较高。
 
-第一，输入解析模块。传统方法只接受结构化输入，例如 `room_type=bedroom, bed_count=1, desk=True`。大模型方法接受自然语言输入，并输出结构化 JSON。
+第二条线是 NeRF 及神经辐射场。NeRF 将场景表示为从三维位置和观察方向到密度、颜色的连续函数，再用经典体渲染公式合成图像。该方向应重点说明它并未抛弃图形学，而是把体渲染、相机射线采样、可微优化和神经网络表示结合起来。
 
-第二，场景图生成模块。让大模型输出类似这样的结构：
+第三条线是加速与显式化的神经渲染。Instant-NGP、PlenOctrees、SNeRG、Plenoxels、TensoRF 和 Zip-NeRF 都在解决 NeRF 训练慢、渲染慢或抗锯齿不足的问题。3D Gaussian Splatting 进一步将场景表示为可优化的三维高斯集合，用可微 splatting 实现实时新视角渲染，是本文实验最适合作为高效神经渲染方法的代表。
 
-```json
-{
-  "room": {"type": "bedroom", "size": [5, 4, 3]},
-  "objects": [
-    {"name": "bed", "position": "against left wall", "style": "modern"},
-    {"name": "desk", "position": "near window", "style": "wooden"},
-    {"name": "chair", "position": "in front of desk"},
-    {"name": "rug", "position": "beside bed"}
-  ],
-  "lighting": {"style": "warm evening", "intensity": "medium"}
-}
-```
+第四条线是几何、控制和真实场景鲁棒性。NeuS、VolSDF、DeepSDF 讨论隐式表面和 SDF 表示，BARF 讨论相机位姿误差，NeRF-W 讨论非受控照片中的光照变化和临时遮挡，RegNeRF 和 pixelNeRF 讨论稀疏输入下的先验与正则。这些工作可用于结果讨论部分解释神经渲染的局限：高质量图像不等于可编辑几何，少视角或错误位姿会显著影响稳定性。
 
-第三，Blender 生成模块。你用 Python 脚本读取 JSON，调用预置模型或简单几何体生成物体，完成位置、比例、旋转、材质和灯光设置。
+## 4. 方法设计
 
-第四，渲染与评价模块。输出俯视图、透视图和若干实验表格，对比传统方法和大模型方法。
+本文方法部分不写成“调用某个工具”的说明，而写成两个可比较的图形学管线。
 
-### 四、实验设计
+### 4.1 传统显式重建与渲染管线
 
-实验不要太大，建议做 10 到 20 条文本输入，分成三类：
+输入为同一静态场景的多视角图像。首先使用 COLMAP 或同类 SfM 方法估计相机内外参并重建稀疏点云；再通过 MVS 或深度估计获得稠密点云和三角网格；随后进行网格清理、法线修正、纹理映射和材质设置；最后在 Blender 中采用固定相机路径输出测试视角图像。该管线对应传统 CG 思路：场景由显式几何、纹理、材质、光照和相机组成，渲染器根据这些可解释对象生成图像。
 
-简单描述：
-“生成一个卧室，有床、桌子、椅子和衣柜。”
+### 4.2 神经辐射场管线
 
-空间关系描述：
-“床靠左墙，桌子靠窗，椅子在桌子前方，地毯在床右侧。”
+同样输入多视角图像和相机位姿。NeRF 类方法用 MLP 或混合网格结构表示体密度与视角相关辐射度，对每条相机射线采样多个空间点，并通过体渲染积分得到像素颜色。训练目标是使渲染图像与训练图像一致。该管线应突出两点：一是它仍然使用相机射线、体密度、透射率和图像形成模型；二是场景表示由手工建模转为数据驱动优化。
 
-风格与功能描述：
-“生成一个适合学生学习的小卧室，整体简洁，光照温暖，桌面区域明亮。”
+### 4.3 高效神经渲染管线
 
-对比组可以这样设计：
+为避免只比较原始 NeRF 的慢速版本，实验中加入 Instant-NGP 或 3D Gaussian Splatting。Instant-NGP 通过多分辨率哈希编码减少网络计算，3D Gaussian Splatting 则从 SfM 点云初始化三维高斯，优化位置、协方差、透明度和球谐颜色，并通过可微 splatting 进行实时渲染。该管线适合和传统显式渲染比较效率，也适合讨论“神经表示是否牺牲可控性”。
 
-| 组别     | 方法              | 输入             | 输出                |
-| ------ | --------------- | -------------- | ----------------- |
-| A 组    | 传统规则方法          | 结构化参数          | 固定模板场景            |
-| B 组    | LLM 零样本         | 自然语言           | JSON + Blender 场景 |
-| C 组    | LLM + 约束 prompt | 自然语言 + 输出格式约束  | 更稳定的 JSON + 场景    |
-| D 组，可选 | LLM + 人工修正      | 初始 JSON + 人工编辑 | 半自动协同场景           |
+### 4.4 对比逻辑
 
-评价指标可以用这些：
+三条流程的输入、相机路径和测试视角保持一致：
 
-一是**物体完整率**：文本中提到的物体有多少被正确生成。
+1. 传统流程：SfM/MVS/mesh/texture/Blender 渲染。
+2. NeRF 流程：基于相机位姿训练辐射场并进行体渲染。
+3. 高效神经渲染流程：Instant-NGP 或 3DGS 优化场景表示并实时渲染。
 
-二是**空间关系准确率**：例如“床靠墙”“椅子在桌前”“地毯在床边”是否满足。
+这样实验比较的不是“哪张图更好看”，而是三种图形学过程在表示形式、渲染方式、可编辑性和效率上的差异。
 
-三是**碰撞率**：物体之间是否重叠，是否穿墙。
+## 5. 实验设计
 
-四是**布局合理性**：可以人工打分，1 到 5 分。
+### 5.1 数据选择
 
-五是**制作效率**：记录每个场景从输入到渲染完成的时间，以及人工修改次数。
+优先选择公开数据集或可快速复现实验的数据：
 
-六是**稳定性**：同一个 prompt 运行 3 次，看输出是否一致，是否出现 JSON 格式错误或空间关系错误。
+1. Blender Synthetic / NeRF Synthetic：相机位姿准确、可得到无噪声测试图，适合做 PSNR、SSIM、LPIPS 的定量比较。
+2. LLFF 或 Mip-NeRF 360 场景：真实照片场景，适合观察反光、薄结构、边界和远近尺度变化。
+3. 自采小场景：如桌面物体、教室角落或室内摆件，用手机环绕拍摄 40-80 张照片，作为课程展示图文材料。
 
-这些指标刚好对应课程要求中的结果质量、控制性、效率和新问题分析。
+如果时间有限，建议以公开数据为主，自采数据作为定性展示。
 
-### 五、论文结构建议
+### 5.2 变量设置
 
-你的论文可以按这个结构写：
+实验变量围绕作业要求设计：
 
-**摘要**：说明你提出了一个 LLM 辅助的文本到 3D 室内场景布局 pipeline，并与传统规则方法比较。
+1. 方法变量：传统 mesh+texture 渲染、原始 NeRF 或 Nerfstudio-NeRF、Instant-NGP 或 3D Gaussian Splatting。
+2. 输入视角变量：完整视角、稀疏视角、局部遮挡或较大视角外推。
+3. 控制变量：固定相机路径、固定输出分辨率、固定训练/优化预算，尽量使用相同训练/测试划分。
+4. 流程变量：人工清理网格的传统流程、少量参数调节的 AI 辅助流程、脚本化自动重建流程。
 
-**引言**：写传统 3D 场景制作依赖人工建模和规则脚本，普通用户很难把自然语言需求转成可执行 CG 流程。大模型可以承担语义解析和空间关系规划，但也会带来不稳定、不可预测和几何不一致问题。
+### 5.3 指标设计
 
-**相关技术现状**：分三部分写：传统程序化建模与室内场景合成；文本/语言驱动 3D 场景生成；AI 辅助材质、光照和渲染。
+定量指标：
 
-**方法设计**：介绍你的系统流程：自然语言输入、LLM 解析、JSON 场景图、Blender 脚本生成、材质光照设置、渲染输出。
+1. PSNR：衡量像素级重建误差，适合公开数据集的测试视角。
+2. SSIM：衡量结构相似度，适合比较边缘和纹理结构。
+3. LPIPS：衡量感知相似度，适合说明人眼感知质量。
+4. 训练或重建时间：从输入图像到可渲染表示的总耗时。
+5. 单帧渲染时间或 FPS：比较实时交互能力。
+6. 模型或资产大小：比较存储成本。
 
-**实验与对比**：列出 prompt 集合、对比组、评价指标、实验结果截图和表格。
+定性指标：
 
-**结果讨论**：重点讨论大模型的提升和局限。提升包括输入更自然、空间关系表达更强、风格控制更灵活、人工建模时间减少。局限包括输出格式偶尔错误、空间关系可能误解、物体尺寸不一致、复杂场景中容易碰撞、不同运行结果不稳定。
+1. 视角外推时是否出现漂浮物、空洞、拉伸纹理或模糊。
+2. 反光、透明、细薄结构和遮挡边缘是否稳定。
+3. 是否能够单独编辑几何、材质、光照和相机。
+4. 是否可以导出可供传统引擎使用的 mesh、texture、obj、glb 或 ply。
 
-**结论**：总结大模型更适合作为 CG pipeline 中的“语义规划器”和“参数生成器”，而不是完全替代传统图形学流程。
+### 5.4 预期结果
 
-### 六、可以直接采用的论文题目
+预期传统流程在几何编辑和引擎兼容性上更强，但在复杂外观和手工处理成本上较弱。NeRF 类方法在训练视角附近的新视角合成质量上通常更好，但训练和渲染成本较高，几何显式性较弱。3D Gaussian Splatting 预计在渲染速度和视觉质量之间取得较好平衡，但可能带来较大显存占用、外推视角 artifacts、光照和材质不可分离等问题。
 
-你可以选下面其中一个：
+## 6. 论文结构规划
 
-**《基于大语言模型的文本驱动 3D 室内场景布局生成方法研究》**
+摘要：概括问题、方法、对比实验和主要结论。摘要应强调神经渲染改变的是三维场景表示和渲染过程，而不是二维图片生成。
 
-**《面向自然语言输入的 3D 场景自动构建：传统规则方法与大模型辅助方法对比》**
+引言：从传统图形学管线切入，说明显式几何、材质、光照和相机组成了可控但成本较高的渲染流程；再引出神经渲染通过多视角图像学习场景表示，改变了重建与渲染的分工；最后给出本文比较问题。
 
-**《大语言模型辅助的 Blender 场景生成 Pipeline 设计与实验分析》**
+相关技术现状：按“传统重建与显式渲染”“NeRF 与体渲染”“高效神经渲染与 3DGS”“几何控制与真实场景鲁棒性”四部分组织。
 
-我最推荐第三个，题目更工程化，容易和你的实现对应，也更符合课程“设计并实现一个结合大模型的方法”的要求。
+方法设计：写清传统管线、NeRF 管线和高效神经渲染管线的输入输出、核心表示、渲染方程或渲染过程，以及为什么它们可公平对比。
 
-[1]: https://arxiv.org/abs/2305.15393?utm_source=chatgpt.com "LayoutGPT: Compositional Visual Planning and Generation with Large Language Models"
-[2]: https://arxiv.org/abs/2403.01248?utm_source=chatgpt.com "An LLM Agent for Synthesizing 3D Scene as Blender Code"
-[3]: https://arxiv.org/abs/2402.04717?utm_source=chatgpt.com "InstructScene: Instruction-Driven 3D Indoor Scene ..."
-[4]: https://arxiv.org/abs/2410.09049?utm_source=chatgpt.com "SceneCraft: Layout-Guided 3D Scene Generation"
-[5]: https://www.ecva.net/papers/eccv_2024/papers_ECCV/papers/11481.pdf?utm_source=chatgpt.com "SceneTeller: Language-to-3D Scene Generation"
-[6]: https://arxiv.org/abs/2110.03675?utm_source=chatgpt.com "ATISS: Autoregressive Transformers for Indoor Scene Synthesis"
-[7]: https://arxiv.org/abs/2012.09793?utm_source=chatgpt.com "SceneFormer: Indoor Scene Generation with Transformers"
-[8]: https://peterwonka.net/Publications/pdfs/2006.SG.Mueller.ProceduralModelingOfBuildings.final.pdf?utm_source=chatgpt.com "Procedural Modeling of Buildings"
-[9]: https://arxiv.org/abs/2303.11989?utm_source=chatgpt.com "Text2Room: Extracting Textured 3D Meshes from 2D Text-to-Image Models"
-[10]: https://arxiv.org/abs/2209.14988?utm_source=chatgpt.com "[2209.14988] DreamFusion: Text-to-3D using 2D Diffusion"
-[11]: https://arxiv.org/abs/2211.10440?utm_source=chatgpt.com "Magic3D: High-Resolution Text-to-3D Content Creation"
-[12]: https://arxiv.org/abs/2309.16653?utm_source=chatgpt.com "DreamGaussian: Generative Gaussian Splatting for Efficient 3D Content Creation"
-[13]: https://arxiv.org/abs/2305.02463?utm_source=chatgpt.com "Shap-E: Generating Conditional 3D Implicit Functions"
-[14]: https://arxiv.org/abs/2310.13772?utm_source=chatgpt.com "TexFusion: Synthesizing 3D Textures with Text-Guided Image Diffusion Models"
-[15]: https://arxiv.org/abs/2309.01700?utm_source=chatgpt.com "ControlMat: A Controlled Generative Approach to Material Capture"
-[16]: https://arxiv.org/abs/2209.09898?utm_source=chatgpt.com "Text2Light: Zero-Shot Text-Driven HDR Panorama Generation"
-[17]: https://arxiv.org/abs/2303.13873?utm_source=chatgpt.com "Fantasia3D: Disentangling Geometry and Appearance for High-quality Text-to-3D Content Creation"
+实验与对比：展示数据集、实验设置、指标表格、图像对比、相机路径截图、时间和资源消耗。
+
+结果讨论：围绕质量、控制性、效率和局限逐项回答作业要求。重点讨论神经渲染的边界：它能以图像监督获得逼真的新视角，但不天然提供完全可编辑的几何、材质和光照分解。
+
+参考文献：采用神经渲染综述、NeRF 基础论文、效率改进、几何重建和真实场景鲁棒性相关论文。
+
+## 7. 图表计划
+
+1. 传统 CG/重建渲染管线图：图像采集 -> SfM/MVS -> mesh/texture -> material/light -> render。
+2. NeRF 管线图：图像和位姿 -> 坐标编码/MLP 或网格 -> 射线采样 -> 体渲染 -> 新视角。
+3. 3DGS 管线图：SfM 点云 -> 三维高斯初始化 -> 高斯参数优化 -> splatting 渲染。
+4. 测试视角对比图：Ground truth、传统 mesh、NeRF、3DGS 并列。
+5. 指标表：PSNR、SSIM、LPIPS、训练时间、FPS、资产大小。
+6. 局限案例图：少视角、反光、边界漂浮物、视角外推失败。
+
+## 8. 已核对摘要的参考文献与引用位置
+
+以下论文均已核对到原文摘要页或出版页摘要，数量为 20 篇，不少于原计划的 17 篇；其中 [1] 和 [2] 为综述类文献，满足至少包含一篇综述论文的要求。
+
+| 编号 | 文献 | 用于论文位置 |
+| --- | --- | --- |
+| [1] Tewari et al., **State of the Art on Neural Rendering**, Computer Graphics Forum / arXiv:2004.03805, 2020. https://arxiv.org/abs/2004.03805 | 摘要、引言、相关技术现状。作为神经渲染定义和整体发展脉络的综述依据。 |
+| [2] Xie et al., **Neural Fields in Visual Computing and Beyond**, Computer Graphics Forum / arXiv:2111.11426, 2021. https://arxiv.org/abs/2111.11426 | 相关技术现状。用于解释 neural field / implicit neural representation 的统一表述。 |
+| [3] Mildenhall et al., **NeRF: Representing Scenes as Neural Radiance Fields for View Synthesis**, ECCV / arXiv:2003.08934, 2020. https://arxiv.org/abs/2003.08934 | 引言、方法设计。作为神经辐射场与体渲染主线的基础文献。 |
+| [4] Tancik et al., **Fourier Features Let Networks Learn High Frequency Functions in Low Dimensional Domains**, NeurIPS / arXiv:2006.10739, 2020. https://arxiv.org/abs/2006.10739 | 相关技术现状。用于说明位置编码和高频细节学习。 |
+| [5] Sitzmann et al., **Scene Representation Networks**, NeurIPS / arXiv:1906.01618, 2019. https://arxiv.org/abs/1906.01618 | 相关技术现状。用于说明 NeRF 之前的连续神经场场景表示。 |
+| [6] Park et al., **DeepSDF: Learning Continuous Signed Distance Functions for Shape Representation**, CVPR / arXiv:1901.05103, 2019. https://arxiv.org/abs/1901.05103 | 相关技术现状、结果讨论。用于说明 SDF 与显式表面控制问题。 |
+| [7] Barron et al., **Mip-NeRF: A Multiscale Representation for Anti-Aliasing Neural Radiance Fields**, ICCV / arXiv:2103.13415, 2021. https://arxiv.org/abs/2103.13415 | 相关技术现状。用于说明反走样与多尺度采样。 |
+| [8] Barron et al., **Mip-NeRF 360: Unbounded Anti-Aliased Neural Radiance Fields**, CVPR / arXiv:2111.12077, 2022. https://arxiv.org/abs/2111.12077 | 实验设计、结果讨论。用于真实无界场景与外推难点。 |
+| [9] Müller et al., **Instant Neural Graphics Primitives with a Multiresolution Hash Encoding**, SIGGRAPH / arXiv:2201.05989, 2022. https://arxiv.org/abs/2201.05989 | 方法设计、实验对比。作为高效 NeRF 类方法代表。 |
+| [10] Yu et al., **PlenOctrees for Real-time Rendering of Neural Radiance Fields**, ICCV / arXiv:2103.14024, 2021. https://arxiv.org/abs/2103.14024 | 相关技术现状。用于说明将 NeRF 烘焙到显式结构以实现实时渲染。 |
+| [11] Hedman et al., **Baking Neural Radiance Fields for Real-Time View Synthesis**, ICCV / arXiv:2103.14645, 2021. https://arxiv.org/abs/2103.14645 | 相关技术现状。用于讨论 SNeRG 和实时渲染。 |
+| [12] Yu et al., **Plenoxels: Radiance Fields without Neural Networks**, CVPR / arXiv:2112.05131, 2022. https://arxiv.org/abs/2112.05131 | 方法设计、结果讨论。用于说明可微体渲染和优化表示不一定依赖深 MLP。 |
+| [13] Chen et al., **TensoRF: Tensorial Radiance Fields**, ECCV / arXiv:2203.09517, 2022. https://arxiv.org/abs/2203.09517 | 相关技术现状。用于说明低秩张量分解带来的速度和存储优势。 |
+| [14] Kerbl et al., **3D Gaussian Splatting for Real-Time Radiance Field Rendering**, ACM TOG / arXiv:2308.04079, 2023. https://arxiv.org/abs/2308.04079 | 方法设计、实验对比、结果讨论。作为高效神经渲染主实验对象。 |
+| [15] Wang et al., **NeuS: Learning Neural Implicit Surfaces by Volume Rendering for Multi-view Reconstruction**, NeurIPS / arXiv:2106.10689, 2021. https://arxiv.org/abs/2106.10689 | 相关技术现状、局限讨论。用于说明从体渲染转向高质量表面重建。 |
+| [16] Yariv et al., **Volume Rendering of Neural Implicit Surfaces**, NeurIPS / arXiv:2106.12052, 2021. https://arxiv.org/abs/2106.12052 | 相关技术现状。用于说明 SDF 与体密度耦合的 VolSDF 思路。 |
+| [17] Lin et al., **BARF: Bundle-Adjusting Neural Radiance Fields**, ICCV / arXiv:2104.06405, 2021. https://arxiv.org/abs/2104.06405 | 实验设计、局限讨论。用于相机位姿误差和联合优化问题。 |
+| [18] Martin-Brualla et al., **NeRF in the Wild**, CVPR / arXiv:2008.02268, 2021. https://arxiv.org/abs/2008.02268 | 相关技术现状、结果讨论。用于非受控照片、光照变化和临时遮挡。 |
+| [19] Niemeyer et al., **RegNeRF: Regularizing Neural Radiance Fields for View Synthesis from Sparse Inputs**, CVPR / arXiv:2112.00724, 2022. https://arxiv.org/abs/2112.00724 | 实验设计。用于稀疏输入和正则化变量讨论。 |
+| [20] Barron et al., **Zip-NeRF: Anti-Aliased Grid-Based Neural Radiance Fields**, ICCV / arXiv:2304.06706, 2023. https://arxiv.org/abs/2304.06706 | 相关技术现状、结果讨论。用于连接抗锯齿与网格加速方法。 |
+
+## 9. 写作边界
+
+论文应避免把神经渲染写成“AI 画图”。神经渲染的关键不是从文本直接输出二维图像，而是从多视角图像、相机位姿和可微渲染损失中学习一个三维场景表示。它能够生成新的视角，但这种生成受相机、射线、空间坐标、密度、辐射度和可见性约束，因此与普通图像生成模型不同。
+
+论文也不应把 3D Gaussian Splatting 简单写成“不是神经网络所以不是神经渲染”。它继承了辐射场和可微图像重建的目标，只是把 MLP 查询替换为显式三维高斯参数和快速 splatting 渲染。将它放入神经渲染的高效分支中是合理的。
+
+最终结论应保持平衡：神经渲染明显改变了三维内容获取和新视角合成流程，在视觉质量和自动化程度上具有优势；但传统显式图形管线在可编辑性、物理可解释性、引擎兼容性和精确几何控制上仍有不可替代的价值。

@@ -6,7 +6,7 @@
 
 \input{config}
 
-\title{\yihao{计算机图形学}}
+\title{\yihao{基于神经渲染的图像驱动三维场景重建与传统图形渲染流程对比}}
 \author{\xiaoerhao{杨皓然}\footnote{电子邮件: 2330142@bjtu.edu.cn，学号: 23301142}\\[2ex]
 \sanhao 北京交通大学软件学院\\[2ex]
 }
@@ -25,87 +25,125 @@
 \newpage
 
 \begin{abstract}
-摘要
+神经渲染将可微优化、神经场表示与传统图形学中的相机投影、可见性和体渲染模型结合起来，为图像驱动的三维场景重建与新视角合成提供了新的技术路线。本文围绕静态场景的多视角图像输入，比较传统显式重建与渲染流程、NeRF 类神经辐射场流程以及以 3D Gaussian Splatting 为代表的高效神经渲染流程。传统流程依赖 SfM/MVS、网格重建、纹理映射和显式材质光照设置，具有较好的几何可解释性与编辑性；神经渲染流程则通过图像监督优化连续或半显式的场景表示，在训练视角附近的新视角合成质量和自动化程度上具有优势。本文从表示形式、渲染过程、质量评价、控制能力和流程效率五个方面设计对比框架，并讨论神经渲染在稀疏视角、相机位姿误差、视角外推、几何编辑和光照材质分离方面可能引入的新问题。研究目标不是比较单张图像的生成效果，而是分析神经渲染如何改变三维图形学管线中“重建表示”和“渲染输出”的分工。
 \end{abstract}
 
 \begin{keys}
-关键词
+神经渲染；神经辐射场；新视角合成；三维重建；3D Gaussian Splatting
 \end{keys}
 
 \begin{enabstract}
-Here is English abstract. Here is English abstract. Here is English abstract. Here is English abstract. Here is English abstract. Here is English abstract. Here is English abstract. Here is English abstract. Here is English abstract. Here is English abstract. Here is English abstract. Here is English abstract. Here is English abstract. Here is English abstract. Here is English abstract. Here is English abstract. Here is English abstract. Here is English abstract. Here is English abstract. Here is English abstract.
+Neural rendering combines differentiable optimization and neural field representations with camera projection, visibility, and volume rendering models from computer graphics. This paper studies image-driven 3D scene reconstruction and novel view synthesis from multi-view images, and compares three pipelines: traditional explicit reconstruction and rendering, NeRF-style neural radiance fields, and efficient neural rendering represented by 3D Gaussian Splatting. The traditional pipeline relies on SfM/MVS, mesh reconstruction, texture mapping, and explicit material or lighting configuration, which provides interpretable geometry and direct editing interfaces. Neural rendering optimizes continuous or semi-explicit scene representations from image supervision, and often improves visual fidelity and automation near the training views. We design a comparison framework in terms of representation, rendering process, quality, controllability, and efficiency, and discuss new limitations such as sparse-view instability, pose errors, view extrapolation artifacts, weak geometric editability, and entangled material-lighting effects.
 \end{enabstract}
 
 \begin{enkeys}
-keyword1, keyword2, keyword3
+neural rendering; neural radiance fields; novel view synthesis; 3D reconstruction; 3D Gaussian Splatting
 \end{enkeys}
 \newpage
 
 \tableofcontents
 \newpage
 
-\section{一}
-一一一
+\section{引言}
+传统计算机图形学通常从显式场景描述出发生成图像。一个典型流程包括几何建模、材质与纹理制作、光照设置、相机配置以及光栅化或路径追踪渲染。对于真实场景，如果希望从照片恢复可渲染模型，则还需要通过运动恢复结构（Structure from Motion, SfM）估计相机位姿，通过多视图立体（Multi-View Stereo, MVS）获得点云或网格，再进行纹理映射、网格清理和渲染参数调整。该流程的优势在于结构清晰：几何、材质、光照和相机是相对独立的对象，因而便于检查、修改和导入传统渲染引擎；其不足也同样明显，即真实场景的反光、半透明、细薄结构、遮挡边界和纹理缺失会显著增加重建与修复成本。
 
-\subsection{一中之一}
-一中之一
+神经渲染的出现改变了上述流程中“显式建模优先”的假设。Tewari 等人的综述将神经渲染概括为结合经典图形学与生成式机器学习的图像或视频合成方法，并强调其核心在于对相机、姿态、几何、外观和语义结构等场景属性提供显式或隐式控制\cite{tewari2020state}。这一定义表明，神经渲染并不是脱离图形学的二维图像生成，而是在投影、可见性、体渲染、反射外观等图形学约束下引入可学习表示。Xie 等人的 neural fields 综述进一步指出，坐标网络可以把空间或时空中的物理量参数化为连续场，从而统一描述形状、外观、密度、辐射度等多种视觉计算对象\cite{xie2022neuralfields}。
 
+在这一背景下，NeRF 将静态场景表示为从三维位置和观察方向到体密度、颜色的连续函数，并通过沿相机射线的体渲染积分合成图像\cite{mildenhall2020nerf}。这一模型把多视角图像监督、神经网络表示和经典体渲染方程连接起来，成为神经渲染领域的代表性方法。此后，Instant-NGP、Plenoxels、TensoRF、Mip-NeRF、3D Gaussian Splatting 等工作分别从编码结构、显式体素、张量分解、反走样和实时 splatting 角度改进训练速度、渲染速度和视觉质量\cite{muller2022instant,yu2022plenoxels,chen2022tensorf,barron2021mipnerf,kerbl2023gaussians}。
 
+本文选择“基于神经渲染的图像驱动三维场景重建与传统图形渲染流程对比”作为研究主题，原因在于该问题能够直接落到图形学过程本身：输入是多视角图像，输出是可从新视角渲染的三维场景表示。这里的“有无大模型”不再指文本大模型是否参与语义规划，而是指传统显式图形管线与引入神经场、可微渲染或可优化高斯表示后的渲染管线之间的差异。本文关注四个问题：第一，神经渲染是否提升新视角合成质量；第二，场景控制性是否因隐式或半显式表示而发生变化；第三，从图像到可渲染结果的流程效率是否提高；第四，神经渲染是否引入新的不稳定性，例如几何不一致、视角外推失败、光照材质耦合和编辑困难。
 
-\subsection{寮曠敤}
-鏂囩尞\cite{1}\cite{2}鍙欒堪浜嗐€傘€傘€?
+本文的主要工作是建立一个面向课程实验的比较框架。该框架把传统 SfM/MVS/mesh/texture 渲染流程、NeRF 类神经辐射场流程和 3D Gaussian Splatting 高效神经渲染流程放在相同输入、相同测试视角和相同评价指标下讨论。通过这种设计，论文比较的不是某一张图像是否“更好看”，而是不同图形学管线在场景表示、渲染机制、可控编辑、效率和局限上的系统差异。
 
-% \subsection{鍥剧墖}
-% 鍥綷ref{Fig.main}濡備笅鎵€绀猴細
-% \begin{figure}[H] %H涓哄綋鍓嶄綅缃紝!htb涓哄拷鐣ョ編瀛︽爣鍑嗭紝htbp涓烘诞鍔ㄥ浘褰?
-% \centering %鍥剧墖灞呬腑
-% \includegraphics[width=0.8\textwidth]{example1.jpeg} %鎻掑叆鍥剧墖锛孾]涓缃浘鐗囧ぇ灏忥紝{}涓槸鍥剧墖鏂囦欢鍚?
-% \caption{Main name} %鏈€缁堟枃妗ｄ腑甯屾湜鏄剧ず鐨勫浘鐗囨爣棰?
-% \label{Fig.main} %鐢ㄤ簬鏂囧唴寮曠敤鐨勬爣绛?
-% \end{figure}
+\section{相关技术现状}
+\subsection{传统重建与显式渲染流程}
+传统图形学管线以显式场景表示为中心。对于人工创建的虚拟场景，艺术家或程序首先构建网格、曲面或体数据，再为对象指定纹理、材质、法线、光源和相机；渲染器根据几何可见性、着色模型和光照传输计算最终图像。对于真实场景重建，流程通常由图像匹配与相机位姿估计开始，再通过稠密重建获得点云或网格，最后进行纹理贴图和渲染。该路线的核心优势是可解释性：网格顶点、三角面片、纹理图和光源参数都具有明确语义，因此可以被传统建模软件和游戏引擎直接编辑。
 
-琛╘ref{tab.main}濡備笅鎵€绀猴細
-\begin{table}[H]
-\centering
-\caption{Test Caption.}
-\begin{tabular}{|c|c|c|}
-\hline
-\multicolumn{3}{|c|}{瀛︾敓淇℃伅}\\
-\hline
-濮撳悕& 瀛﹀彿& 鎬у埆\\
-\hline
-Ch'en Meng& 001& Male\\
-Sarah Brightman& 002& Female\\
-\hline
-\end{tabular}
-\label{tab.main}
-\end{table}
+显式流程的主要困难来自重建误差与外观建模的不完备。多视图重建依赖跨视角特征匹配，弱纹理表面、镜面反射、透明物体、细小结构和动态干扰都会破坏匹配稳定性。即使得到网格，纹理映射仍可能出现错位、接缝和模糊；如果希望在新光照下重新渲染，还需要进一步分离几何、反照率、粗糙度和光照。Tewari 等人在综述中指出，传统逼真图形学已经能从手工构建的场景表示合成高质量图像，但自动获得形状、材质、光照等场景属性仍然是重要瓶颈\cite{tewari2020state}。这正是神经渲染希望介入的位置。
 
+\subsection{神经渲染与神经场表示}
+神经渲染并不是单一算法，而是一类将可学习模型嵌入图形学图像形成过程的方法。按照 Tewari 等人的归纳，神经渲染的关键问题包括控制变量如何提供、管线中哪些部分被学习、控制是显式还是隐式、结果是确定性还是随机性，以及模型能否泛化到新场景\cite{tewari2020state}。这些维度与传统图形学关心的几何、相机、材质、光照和动画并不矛盾，而是把其中部分环节改写为数据驱动优化问题。
 
-% 鍥綷ref{Fig.sub.1}锛屽浘\ref{Fig.sub.2}锛屽浘\ref{Fig.sub.3}濡備笅鎵€绀猴細
-% \begin{figure}[H]
-% \centering  %鍥剧墖鍏ㄥ眬灞呬腑
-% \subfigure[name1]{
-% \label{Fig.sub.1}
-% \includegraphics[width=0.3\textwidth]{example1.jpeg}}
-% \subfigure[name2]{
-% \label{Fig.sub.2}
-% \includegraphics[width=0.3\textwidth]{example2.jpeg}}
-% \subfigure[name3]{
-% \label{Fig.sub.3}
-% \includegraphics[width=0.3\textwidth]{example3.jpeg}}
-% \caption{Main name}
-% \label{Fig.main}
-% \end{figure}
+神经场为这类方法提供了统一表示。Xie 等人将 neural fields 定义为用坐标网络参数化空间或时空中物理量的函数表示\cite{xie2022neuralfields}。在图形学任务中，这些物理量可以是有符号距离、密度、颜色、辐射度、形变或人体姿态相关的属性。Scene Representation Networks 早期展示了连续神经场作为三维结构感知场景表示的可能性\cite{sitzmann2019srn}；DeepSDF 则用连续有符号距离函数表示三维形状，说明隐式神经表示可以提供不同于三角网格的几何建模方式\cite{park2019deepsdf}。这些工作共同构成了 NeRF 及后续神经渲染方法的表示基础。
 
+\subsection{NeRF 与体渲染}
+NeRF 的贡献在于把连续神经场与经典体渲染方程结合起来。给定空间位置 $\mathbf{x}$ 和观察方向 $\mathbf{d}$，网络输出体密度 $\sigma$ 和颜色 $\mathbf{c}$，再沿相机射线积分得到像素颜色\cite{mildenhall2020nerf}。与直接生成二维图像不同，NeRF 的输出受三维坐标、视线方向、透射率和可见性的约束，因此能够在训练视角附近合成连续变化的新视角。
 
+原始 NeRF 同时存在训练慢、渲染慢和高频细节表达困难等问题。Fourier Features 说明坐标输入的频率编码有助于网络学习低维域上的高频函数\cite{tancik2020fourier}，这为 NeRF 的位置编码提供了理论和经验支撑。Mip-NeRF 将射线采样扩展为锥台积分，缓解不同尺度观察下的走样问题\cite{barron2021mipnerf}；Mip-NeRF 360 进一步面向无界真实场景处理远近尺度和相机轨迹复杂的问题\cite{barron2022mipnerf360}。这些改进表明，神经渲染的质量并不只由网络规模决定，也取决于采样、抗锯齿、空间参数化和相机分布等图形学因素。
 
+\subsection{高效神经渲染与 3D Gaussian Splatting}
+效率是 NeRF 走向交互式应用的核心障碍。PlenOctrees 和 SNeRG 将训练后的辐射场烘焙到更适合实时查询的显式结构中，以减少渲染时的网络计算\cite{yu2021plenoctrees,hedman2021snerg}。Plenoxels 进一步证明，不使用深度 MLP，仅通过稀疏体素网格和球谐颜色也可以优化出高质量辐射场\cite{yu2022plenoxels}。TensoRF 使用张量分解压缩辐射场，兼顾存储和重建质量\cite{chen2022tensorf}。Instant-NGP 采用多分辨率哈希编码，使小型网络能够快速表达高频细节，大幅降低训练时间\cite{muller2022instant}。Zip-NeRF 则将网格加速与抗锯齿思想结合，继续改进高质量新视角合成\cite{barron2023zipnerf}。
 
-\begin{thebibliography}{1}
-\bibitem{1} Wray J, Green G G R. Neural networks, approximation theory, and finite precision computation[J]. Neural networks, 1995, 8(1): 31-37.
-\bibitem{2} Ham F M, Kostanic I. Principles of neurocomputing for science and engineering[M]. McGraw-Hill Higher Education, 2000.
+3D Gaussian Splatting 是近年高效神经渲染的重要代表。它从 SfM 点云初始化三维高斯，用可微优化更新高斯的位置、协方差、透明度和视角相关颜色，再通过排序和 splatting 进行实时渲染\cite{kerbl2023gaussians}。与纯 MLP 辐射场相比，3DGS 更接近半显式表示，渲染速度高，结果可实时浏览；但它仍然继承了图像监督和可微重建的思想，并不等同于传统网格模型。其局限在于高斯集合通常不直接提供干净拓扑、材质分解或可靠物理编辑接口，视角外推和稀疏输入下也可能出现漂浮物和结构破碎。
+
+\subsection{几何控制与真实场景鲁棒性}
+高质量新视角图像并不自动意味着高质量几何。为获得更明确的表面，NeuS 和 VolSDF 将神经隐式表面与体渲染联系起来，尝试从多视角图像中恢复更稳定的 SDF 表面\cite{wang2021neus,yariv2021volsdf}。这类方法说明，图像合成质量和几何可编辑性是相关但不同的目标，实验中需要分别讨论。
+
+真实输入还会带来相机位姿误差、光照变化、临时遮挡和稀疏视角等问题。BARF 将相机位姿与 NeRF 表示联合优化，用于缓解位姿不准对重建的影响\cite{lin2021barf}。NeRF in the Wild 面向互联网照片集合，引入外观编码和瞬态分量处理光照变化与临时遮挡\cite{martinbrualla2021nerfw}。RegNeRF 则关注少量输入视角下的正则化问题，说明神经渲染在数据不足时容易产生退化解\cite{niemeyer2022regnerf}。这些研究为本文的结果讨论提供了边界：神经渲染提升了自动化和视觉质量，但其稳定性依赖视角覆盖、相机质量、场景静态性和训练约束。
+
+\section{方法设计}
+\subsection{总体对比框架}
+本文将实验对象抽象为同一个输入输出问题：给定同一静态场景的多视角图像 $\{I_i\}$ 及其相机参数 $\{K_i,R_i,t_i\}$，构建一个可以从新相机视角 $v$ 渲染图像 $\hat{I}_v$ 的场景表示。传统流程、NeRF 流程和 3DGS 流程的差异不在最终是否能输出图像，而在于中间场景表示和渲染方式不同。
+
+为了保证比较公平，三条管线使用相同的图像集合、训练/测试划分和测试相机路径。评价时同时记录图像质量、耗时、资源消耗和编辑能力。图像质量可用 PSNR、SSIM、LPIPS 等指标衡量；效率包括从输入图像到可渲染表示的总时间、单帧渲染时间和模型或资产大小；控制能力则从几何编辑、材质光照分离、相机路径外推和传统引擎兼容性几个方面进行定性比较。
+
+\subsection{传统显式重建与渲染管线}
+传统管线由四个阶段组成。第一阶段是相机估计和稀疏重建，使用 SfM 从多视角图像中匹配特征点并估计相机内外参，得到稀疏点云。第二阶段是稠密重建和网格生成，通过 MVS、深度融合或表面重建获得三角网格。第三阶段是资产整理，包括网格简化、孔洞修复、法线调整和纹理映射。第四阶段是在 Blender 或同类渲染器中设置相机路径、材质和光照，输出测试视角图像。
+
+该管线的场景表示可以写成
+\[
+S_{\mathrm{mesh}}=\{V,F,T,M,L\},
+\]
+其中 $V$ 表示顶点，$F$ 表示面片，$T$ 表示纹理，$M$ 表示材质参数，$L$ 表示光照设置。渲染过程由传统渲染器完成，优势是每个变量都有明确含义，可单独修改；缺点是重建失败会直接表现为网格破洞、纹理拉伸或接缝，且反光、透明和弱纹理区域很难通过简单 MVS 得到可靠几何。
+
+\subsection{NeRF 类神经辐射场管线}
+NeRF 管线使用相同图像和相机参数，但不显式生成三角网格。它学习一个函数
+\[
+F_\Theta:(\mathbf{x},\mathbf{d})\rightarrow(\sigma,\mathbf{c}),
+\]
+其中 $\mathbf{x}$ 为空间位置，$\mathbf{d}$ 为观察方向，$\sigma$ 为体密度，$\mathbf{c}$ 为颜色。对一条相机射线 $\mathbf{r}(t)=\mathbf{o}+t\mathbf{d}$，像素颜色由体渲染积分近似得到：
+\[
+\hat{C}(\mathbf{r})=\sum_{j} T_j\left(1-\exp(-\sigma_j\delta_j)\right)\mathbf{c}_j,
+\]
+其中 $T_j$ 表示射线到第 $j$ 个采样点前的累积透射率，$\delta_j$ 为相邻采样点距离。训练目标是最小化渲染颜色与真实训练图像像素之间的误差。
+
+该管线的关键变化是：场景表示从可直接编辑的网格和纹理，变为由参数 $\Theta$ 控制的连续辐射场。其优点是能够通过图像监督吸收复杂外观和视角相关效果，减少显式网格清理；缺点是训练和渲染成本较高，且几何、材质、光照往往纠缠在同一表示中。若需要提取网格，通常还要额外执行密度阈值化、marching cubes 或 SDF 转换，这些步骤会带来新的误差。
+
+\subsection{高效神经渲染管线}
+高效神经渲染管线用于观察神经渲染在效率维度上的改进。若采用 Instant-NGP，场景仍可看作辐射场，但坐标输入先经过多分辨率哈希编码，再由小型 MLP 输出密度和颜色，从而减少网络容量与训练时间\cite{muller2022instant}。若采用 3D Gaussian Splatting，场景表示为一组三维高斯：
+\[
+S_{\mathrm{3DGS}}=\{(\mu_k,\Sigma_k,\alpha_k,\mathbf{h}_k)\}_{k=1}^{N},
+\]
+其中 $\mu_k$ 是高斯中心，$\Sigma_k$ 是协方差，$\alpha_k$ 是透明度，$\mathbf{h}_k$ 表示球谐颜色系数。渲染时将三维高斯投影到屏幕空间，并按深度进行 alpha 合成。
+
+与 NeRF 相比，3DGS 减少了沿每条射线大量采样和 MLP 查询的开销，因此更适合实时浏览和交互式展示。与传统 mesh 相比，它又不是拓扑明确的表面模型，难以像编辑三角网格一样直接修改边、面、UV 和材质。因此，本文把 3DGS 作为神经渲染效率改进的代表，而不是把它视为传统显式建模的简单替代。
+
+\subsection{实验变量与比较维度}
+本文后续实验将围绕三组变量展开。第一组是方法变量，包括传统 mesh+texture 渲染、NeRF 类辐射场和 3DGS。第二组是输入变量，包括完整多视角输入、稀疏视角输入和较大视角外推。第三组是流程变量，包括人工清理程度、训练或优化时间、参数调节次数和渲染速度。
+
+比较结论将从四个问题展开。第一，结果质量是否提升：观察测试视角图像的误差指标和视觉细节。第二，控制性是否变化：比较能否单独编辑几何、材质、光照和相机。第三，效率是否提高：比较建模、训练、优化和渲染时间。第四，是否产生新局限：记录漂浮物、模糊、几何不一致、显存占用、外推失败和材质光照不可分离等现象。通过这些维度，本文能够把神经渲染的优势和代价同时放入计算机图形学管线中讨论。
+
+\begin{thebibliography}{99}
+\bibitem{tewari2020state} A. Tewari, O. Fried, J. Thies, V. Sitzmann, S. Lombardi, K. Sunkavalli, R. Martin-Brualla, T. Simon, J. Saragih, M. Nie{\ss}ner, et al. State of the Art on Neural Rendering. Computer Graphics Forum, 39(2), 2020.
+\bibitem{xie2022neuralfields} Y. Xie, T. Takikawa, S. Saito, O. Litany, S. Yan, N. Khan, F. Tombari, J. Tompkin, V. Sitzmann, and S. Sridhar. Neural Fields in Visual Computing and Beyond. Computer Graphics Forum, 41(2), 2022.
+\bibitem{mildenhall2020nerf} B. Mildenhall, P. P. Srinivasan, M. Tancik, J. T. Barron, R. Ramamoorthi, and R. Ng. NeRF: Representing Scenes as Neural Radiance Fields for View Synthesis. ECCV, 2020.
+\bibitem{tancik2020fourier} M. Tancik, P. P. Srinivasan, B. Mildenhall, S. Fridovich-Keil, N. Raghavan, U. Singhal, R. Ramamoorthi, J. T. Barron, and R. Ng. Fourier Features Let Networks Learn High Frequency Functions in Low Dimensional Domains. NeurIPS, 2020.
+\bibitem{sitzmann2019srn} V. Sitzmann, M. Zollh{\"o}fer, and G. Wetzstein. Scene Representation Networks: Continuous 3D-Structure-Aware Neural Scene Representations. NeurIPS, 2019.
+\bibitem{park2019deepsdf} J. J. Park, P. Florence, J. Straub, R. Newcombe, and S. Lovegrove. DeepSDF: Learning Continuous Signed Distance Functions for Shape Representation. CVPR, 2019.
+\bibitem{barron2021mipnerf} J. T. Barron, B. Mildenhall, M. Tancik, P. Hedman, R. Martin-Brualla, and P. P. Srinivasan. Mip-NeRF: A Multiscale Representation for Anti-Aliasing Neural Radiance Fields. ICCV, 2021.
+\bibitem{barron2022mipnerf360} J. T. Barron, B. Mildenhall, D. Verbin, P. P. Srinivasan, and P. Hedman. Mip-NeRF 360: Unbounded Anti-Aliased Neural Radiance Fields. CVPR, 2022.
+\bibitem{muller2022instant} T. M{\"u}ller, A. Evans, C. Schied, and A. Keller. Instant Neural Graphics Primitives with a Multiresolution Hash Encoding. ACM Transactions on Graphics, 41(4), 2022.
+\bibitem{yu2021plenoctrees} A. Yu, R. Li, M. Tancik, H. Li, R. Ng, and A. Kanazawa. PlenOctrees for Real-time Rendering of Neural Radiance Fields. ICCV, 2021.
+\bibitem{hedman2021snerg} P. Hedman, P. P. Srinivasan, B. Mildenhall, J. T. Barron, and P. Debevec. Baking Neural Radiance Fields for Real-Time View Synthesis. ICCV, 2021.
+\bibitem{yu2022plenoxels} A. Yu, S. Fridovich-Keil, M. Tancik, Q. Chen, B. Recht, and A. Kanazawa. Plenoxels: Radiance Fields without Neural Networks. CVPR, 2022.
+\bibitem{chen2022tensorf} A. Chen, Z. Xu, A. Geiger, J. Yu, and H. Su. TensoRF: Tensorial Radiance Fields. ECCV, 2022.
+\bibitem{kerbl2023gaussians} B. Kerbl, G. Kopanas, T. Leimk{\"u}hler, and G. Drettakis. 3D Gaussian Splatting for Real-Time Radiance Field Rendering. ACM Transactions on Graphics, 42(4), 2023.
+\bibitem{wang2021neus} P. Wang, L. Liu, Y. Liu, C. Theobalt, T. Komura, and W. Wang. NeuS: Learning Neural Implicit Surfaces by Volume Rendering for Multi-view Reconstruction. NeurIPS, 2021.
+\bibitem{yariv2021volsdf} L. Yariv, J. Gu, Y. Kasten, and Y. Lipman. Volume Rendering of Neural Implicit Surfaces. NeurIPS, 2021.
+\bibitem{lin2021barf} C.-H. Lin, W.-C. Ma, A. Torralba, and S. Lucey. BARF: Bundle-Adjusting Neural Radiance Fields. ICCV, 2021.
+\bibitem{martinbrualla2021nerfw} R. Martin-Brualla, N. Radwan, M. S. M. Sajjadi, J. T. Barron, A. Dosovitskiy, and D. Duckworth. NeRF in the Wild: Neural Radiance Fields for Unconstrained Photo Collections. CVPR, 2021.
+\bibitem{niemeyer2022regnerf} M. Niemeyer, J. T. Barron, B. Mildenhall, M. Nie{\ss}ner, and A. Geiger. RegNeRF: Regularizing Neural Radiance Fields for View Synthesis from Sparse Inputs. CVPR, 2022.
+\bibitem{barron2023zipnerf} J. T. Barron, B. Mildenhall, D. Verbin, P. P. Srinivasan, and P. Hedman. Zip-NeRF: Anti-Aliased Grid-Based Neural Radiance Fields. ICCV, 2023.
 \end{thebibliography}
 
 \end{document}
-
-
