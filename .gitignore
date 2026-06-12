@@ -2,3 +2,12 @@
 # Mac OS X
 .DS_Store
 *.DS_Store
+
+
+/docs
+*.aux
+*.log
+*.nav
+*.out
+*.snm
+*.toc

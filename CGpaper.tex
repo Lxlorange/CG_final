@@ -1,0 +1,111 @@
+%!TEX program = xelatex
+%!TEX TS-program = xelatex
+%!TEX encoding = UTF-8 Unicode
+
+\documentclass[a4paper, 12pt, centering]{article}
+
+\input{config}
+
+\title{\yihao{计算机图形学}}
+\author{\xiaoerhao{杨皓然}\footnote{电子邮件: 2330142@bjtu.edu.cn，学号: 23301142}\\[2ex]
+\sanhao 北京交通大学软件学院\\[2ex]
+}
+\date{\sanhao\today}
+\begin{document}
+
+\begin{center}
+\includegraphics[width=0.4\textwidth]{images/BJTU_emblem.png}
+\end{center}
+\vspace{1.2cm}
+
+\begingroup
+\let\newpage\relax% Void the actions of \newpage
+\maketitle
+\endgroup
+\newpage
+
+\begin{abstract}
+摘要
+\end{abstract}
+
+\begin{keys}
+关键词
+\end{keys}
+
+\begin{enabstract}
+Here is English abstract. Here is English abstract. Here is English abstract. Here is English abstract. Here is English abstract. Here is English abstract. Here is English abstract. Here is English abstract. Here is English abstract. Here is English abstract. Here is English abstract. Here is English abstract. Here is English abstract. Here is English abstract. Here is English abstract. Here is English abstract. Here is English abstract. Here is English abstract. Here is English abstract. Here is English abstract.
+\end{enabstract}
+
+\begin{enkeys}
+keyword1, keyword2, keyword3
+\end{enkeys}
+\newpage
+
+\tableofcontents
+\newpage
+
+\section{一}
+一一一
+
+\subsection{一中之一}
+一中之一
+
+
+
+\subsection{寮曠敤}
+鏂囩尞\cite{1}\cite{2}鍙欒堪浜嗐€傘€傘€?
+
+% \subsection{鍥剧墖}
+% 鍥綷ref{Fig.main}濡備笅鎵€绀猴細
+% \begin{figure}[H] %H涓哄綋鍓嶄綅缃紝!htb涓哄拷鐣ョ編瀛︽爣鍑嗭紝htbp涓烘诞鍔ㄥ浘褰?
+% \centering %鍥剧墖灞呬腑
+% \includegraphics[width=0.8\textwidth]{example1.jpeg} %鎻掑叆鍥剧墖锛孾]涓缃浘鐗囧ぇ灏忥紝{}涓槸鍥剧墖鏂囦欢鍚?
+% \caption{Main name} %鏈€缁堟枃妗ｄ腑甯屾湜鏄剧ず鐨勫浘鐗囨爣棰?
+% \label{Fig.main} %鐢ㄤ簬鏂囧唴寮曠敤鐨勬爣绛?
+% \end{figure}
+
+琛╘ref{tab.main}濡備笅鎵€绀猴細
+\begin{table}[H]
+\centering
+\caption{Test Caption.}
+\begin{tabular}{|c|c|c|}
+\hline
+\multicolumn{3}{|c|}{瀛︾敓淇℃伅}\\
+\hline
+濮撳悕& 瀛﹀彿& 鎬у埆\\
+\hline
+Ch'en Meng& 001& Male\\
+Sarah Brightman& 002& Female\\
+\hline
+\end{tabular}
+\label{tab.main}
+\end{table}
+
+
+% 鍥綷ref{Fig.sub.1}锛屽浘\ref{Fig.sub.2}锛屽浘\ref{Fig.sub.3}濡備笅鎵€绀猴細
+% \begin{figure}[H]
+% \centering  %鍥剧墖鍏ㄥ眬灞呬腑
+% \subfigure[name1]{
+% \label{Fig.sub.1}
+% \includegraphics[width=0.3\textwidth]{example1.jpeg}}
+% \subfigure[name2]{
+% \label{Fig.sub.2}
+% \includegraphics[width=0.3\textwidth]{example2.jpeg}}
+% \subfigure[name3]{
+% \label{Fig.sub.3}
+% \includegraphics[width=0.3\textwidth]{example3.jpeg}}
+% \caption{Main name}
+% \label{Fig.main}
+% \end{figure}
+
+
+
+
+\begin{thebibliography}{1}
+\bibitem{1} Wray J, Green G G R. Neural networks, approximation theory, and finite precision computation[J]. Neural networks, 1995, 8(1): 31-37.
+\bibitem{2} Ham F M, Kostanic I. Principles of neurocomputing for science and engineering[M]. McGraw-Hill Higher Education, 2000.
+\end{thebibliography}
+
+\end{document}
+
+
