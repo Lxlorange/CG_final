@@ -5,6 +5,10 @@
 
 
 /docs
+experiment/outputs
+__pycache__
+/venv
+
 *.aux
 *.log
 *.nav

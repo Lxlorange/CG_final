@@ -6,7 +6,7 @@
 
 \input{config}
 
-\title{\yihao{基于神经渲染的图像驱动三维场景重建与传统图形渲染流程对比}}
+\title{\yihao{基于神经渲染的三维场景重建与传统图形渲染流程对比}}
 \author{\xiaoerhao{杨皓然}\footnote{电子邮件: 2330142@bjtu.edu.cn，学号: 23301142}\\[2ex]
 \sanhao 北京交通大学软件学院\\[2ex]
 }
@@ -25,7 +25,7 @@
 \newpage
 
 \begin{abstract}
-神经渲染将可微优化、神经场表示与传统图形学中的相机投影、可见性和体渲染模型结合起来，为图像驱动的三维场景重建与新视角合成提供了新的技术路线。本文围绕静态场景的多视角图像输入，比较传统显式重建与渲染流程、NeRF 类神经辐射场流程以及以 3D Gaussian Splatting 为代表的高效神经渲染流程。传统流程依赖 SfM/MVS、网格重建、纹理映射和显式材质光照设置，具有较好的几何可解释性与编辑性；神经渲染流程则通过图像监督优化连续或半显式的场景表示，在训练视角附近的新视角合成质量和自动化程度上具有优势。本文从表示形式、渲染过程、质量评价、控制能力和流程效率五个方面设计对比框架，并讨论神经渲染在稀疏视角、相机位姿误差、视角外推、几何编辑和光照材质分离方面可能引入的新问题。研究目标不是比较单张图像的生成效果，而是分析神经渲染如何改变三维图形学管线中“重建表示”和“渲染输出”的分工。
+神经渲染将可微优化、神经场表示与传统图形学中的相机投影、可见性和体渲染模型结合起来，为三维场景重建与新视角合成提供了新的技术路线。本文围绕静态场景的多视角图像输入，比较传统显式重建与渲染流程、NeRF 类神经辐射场流程以及以 3D Gaussian Splatting 为代表的高效神经渲染流程。传统流程依赖 SfM/MVS、网格重建、纹理映射和显式材质光照设置，具有较好的几何可解释性与编辑性；神经渲染流程则通过图像监督优化连续或半显式的场景表示，在训练视角附近的新视角合成质量和自动化程度上具有优势。本文从表示形式、渲染过程、质量评价、控制能力和流程效率五个方面设计对比框架，并讨论神经渲染在稀疏视角、相机位姿误差、视角外推、几何编辑和光照材质分离方面可能引入的新问题。研究目标不是比较单张图像的生成效果，而是分析神经渲染如何改变三维图形学管线中“重建表示”和“渲染输出”的分工。
 \end{abstract}
 
 \begin{keys}
@@ -33,7 +33,7 @@
 \end{keys}
 
 \begin{enabstract}
-Neural rendering combines differentiable optimization and neural field representations with camera projection, visibility, and volume rendering models from computer graphics. This paper studies image-driven 3D scene reconstruction and novel view synthesis from multi-view images, and compares three pipelines: traditional explicit reconstruction and rendering, NeRF-style neural radiance fields, and efficient neural rendering represented by 3D Gaussian Splatting. The traditional pipeline relies on SfM/MVS, mesh reconstruction, texture mapping, and explicit material or lighting configuration, which provides interpretable geometry and direct editing interfaces. Neural rendering optimizes continuous or semi-explicit scene representations from image supervision, and often improves visual fidelity and automation near the training views. We design a comparison framework in terms of representation, rendering process, quality, controllability, and efficiency, and discuss new limitations such as sparse-view instability, pose errors, view extrapolation artifacts, weak geometric editability, and entangled material-lighting effects.
+Neural rendering combines differentiable optimization and neural field representations with camera projection, visibility, and volume rendering models from computer graphics. This paper studies 3D scene reconstruction and novel view synthesis from multi-view images, and compares three pipelines: traditional explicit reconstruction and rendering, NeRF-style neural radiance fields, and efficient neural rendering represented by 3D Gaussian Splatting. The traditional pipeline relies on SfM/MVS, mesh reconstruction, texture mapping, and explicit material or lighting configuration, which provides interpretable geometry and direct editing interfaces. Neural rendering optimizes continuous or semi-explicit scene representations from image supervision, and often improves visual fidelity and automation near the training views. We design a comparison framework in terms of representation, rendering process, quality, controllability, and efficiency, and discuss new limitations such as sparse-view instability, pose errors, view extrapolation artifacts, weak geometric editability, and entangled material-lighting effects.
 \end{enabstract}
 
 \begin{enkeys}
@@ -51,7 +51,7 @@ neural rendering; neural radiance fields; novel view synthesis; 3D reconstructio
 
 在这一背景下，NeRF 将静态场景表示为从三维位置和观察方向到体密度、颜色的连续函数，并通过沿相机射线的体渲染积分合成图像\cite{mildenhall2020nerf}。这一模型把多视角图像监督、神经网络表示和经典体渲染方程连接起来，成为神经渲染领域的代表性方法。此后，Instant-NGP、Plenoxels、TensoRF、Mip-NeRF、3D Gaussian Splatting 等工作分别从编码结构、显式体素、张量分解、反走样和实时 splatting 角度改进训练速度、渲染速度和视觉质量\cite{muller2022instant,yu2022plenoxels,chen2022tensorf,barron2021mipnerf,kerbl2023gaussians}。
 
-本文选择“基于神经渲染的图像驱动三维场景重建与传统图形渲染流程对比”作为研究主题，原因在于该问题能够直接落到图形学过程本身：输入是多视角图像，输出是可从新视角渲染的三维场景表示。这里的“有无大模型”不再指文本大模型是否参与语义规划，而是指传统显式图形管线与引入神经场、可微渲染或可优化高斯表示后的渲染管线之间的差异。本文关注四个问题：第一，神经渲染是否提升新视角合成质量；第二，场景控制性是否因隐式或半显式表示而发生变化；第三，从图像到可渲染结果的流程效率是否提高；第四，神经渲染是否引入新的不稳定性，例如几何不一致、视角外推失败、光照材质耦合和编辑困难。
+本文选择“基于神经渲染的三维场景重建与传统图形渲染流程对比”作为研究主题，原因在于该问题能够直接落到图形学过程本身：输入是多视角图像，输出是可从新视角渲染的三维场景表示。这里的“有无大模型”不再指文本大模型是否参与语义规划，而是指传统显式图形管线与引入神经场、可微渲染或可优化高斯表示后的渲染管线之间的差异。本文关注四个问题：第一，神经渲染是否提升新视角合成质量；第二，场景控制性是否因隐式或半显式表示而发生变化；第三，从图像到可渲染结果的流程效率是否提高；第四，神经渲染是否引入新的不稳定性，例如几何不一致、视角外推失败、光照材质耦合和编辑困难。
 
 本文的主要工作是建立一个面向课程实验的比较框架。该框架把传统 SfM/MVS/mesh/texture 渲染流程、NeRF 类神经辐射场流程和 3D Gaussian Splatting 高效神经渲染流程放在相同输入、相同测试视角和相同评价指标下讨论。通过这种设计，论文比较的不是某一张图像是否“更好看”，而是不同图形学管线在场景表示、渲染机制、可控编辑、效率和局限上的系统差异。
 
