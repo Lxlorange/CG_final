@@ -24,8 +24,14 @@ def save_rgb(path: Path, image: np.ndarray) -> None:
     Image.fromarray((image * 255.0 + 0.5).astype(np.uint8)).save(path)
 
 
-def load_rgb(path: Path) -> np.ndarray:
-    return np.asarray(Image.open(path).convert("RGB"), dtype=np.float32) / 255.0
+def load_rgb(path: Path, alpha_background=(1.0, 1.0, 1.0)) -> np.ndarray:
+    image = Image.open(path)
+    if image.mode == "RGBA":
+        rgba = np.asarray(image, dtype=np.float32) / 255.0
+        alpha = rgba[..., 3:4]
+        bg = np.asarray(alpha_background, dtype=np.float32).reshape(1, 1, 3)
+        return rgba[..., :3] * alpha + bg * (1.0 - alpha)
+    return np.asarray(image.convert("RGB"), dtype=np.float32) / 255.0
 
 
 def save_json(path: Path, obj: Dict) -> None:
