@@ -123,6 +123,44 @@ S_{\mathrm{3DGS}}=\{(\mu_k,\Sigma_k,\alpha_k,\mathbf{h}_k)\}_{k=1}^{N},
 
 比较结论将从四个问题展开。第一，结果质量是否提升：观察测试视角图像的误差指标和视觉细节。第二，控制性是否变化：比较能否单独编辑几何、材质、光照和相机。第三，效率是否提高：比较建模、训练、优化和渲染时间。第四，是否产生新局限：记录漂浮物、模糊、几何不一致、显存占用、外推失败和材质光照不可分离等现象。通过这些维度，本文能够把神经渲染的优势和代价同时放入计算机图形学管线中讨论。
 
+\section{实验与对比}
+本节围绕 NeRF Synthetic 数据集中的 \texttt{lego} 场景展开实验。该场景结构稳定、轮廓清晰、颜色分布明显，适合观察新视角合成中的几何连续性、纹理保真度与背景处理效果。实验统一使用同一测试视角集，并分别对 \texttt{nerfacto} 与 \texttt{splatfacto} 进行训练和渲染。传统显式流程作为方法背景在前文已经讨论，但由于其输出通常依赖网格重建、纹理整理和渲染器参数设置，难以与训练式方法完全对齐，因此本节的定量对比集中于两种神经渲染方法。
+
+实验数据存放于 \texttt{experiment/outputs/formal/lego}。测试集包含 20 个视角，所有方法均在相同测试帧上导出 RGB 结果，并与对应真实图像逐帧计算 MSE、PSNR 和 SSIM。为了便于比较，图 \ref{fig:comparison} 只展示前 8 个测试视角。定量结果见表 \ref{tab:metrics}。
+
+\begin{table}[htbp]
+\centering
+\caption{正式实验的定量结果}
+\label{tab:metrics}
+\begin{tabular}{lccc}
+\hline
+方法 & 平均 PSNR $\uparrow$ & 平均 SSIM $\uparrow$ & 平均渲染时间/s $\downarrow$ \\
+\hline
+\texttt{nerfacto} & 21.13 & 0.873 & 0.00 \\
+\texttt{splatfacto} & 28.28 & 0.955 & 0.00 \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.95\textwidth]{experiment/outputs/formal/lego/summary/comparison.png}
+\caption{真实图像与两种神经渲染方法的测试视角对比}
+\label{fig:comparison}
+\end{figure}
+
+从定量结果看，\texttt{splatfacto} 在该场景上取得了更高的 PSNR 与 SSIM，说明三维高斯表示在本实验设置下更容易逼近测试视角的像素分布。其优势主要来自表示形式更接近显式点基元，训练后可直接在屏幕空间进行 splatting，因而更容易吸收局部外观和边缘信息。相比之下，\texttt{nerfacto} 以神经场和体渲染为核心，在相同训练轮数下更容易出现局部平滑和细节损失，但它的建模方式更统一，能够直接用连续函数描述场景。
+
+从可视化结果看，两种方法都重建出了 Lego 场景的整体结构，但在部分测试视角上仍存在纹理平滑、边缘软化和背景细节残留。对比图显示，\texttt{splatfacto} 在前景积木边缘和高亮区域的表现更锐利，而 \texttt{nerfacto} 的颜色过渡更平稳，部分区域带有轻微体渲染平均效应。这说明神经渲染的主要差异并不只在“能否生成图像”，而在于它采用何种三维表示来承接图像监督。
+
+\section{结果讨论}
+实验结果支持本文的核心判断：神经渲染改变的是三维场景从图像监督到可渲染表示之间的中间过程，而不是单纯生成一张图像。与传统显式流程相比，NeRF 类方法和 3DGS 类方法都将大量人工建模、贴图整理和渲染器调参转化为数据驱动优化，降低了从图像到可视化结果的建模门槛。但这种自动化并没有消除图形学约束，而是把约束迁移到了相机覆盖、视角分布、场景静态性和优化稳定性上。
+
+本实验也体现出神经渲染的控制性局限。传统 mesh+texture 流程具有明确的几何、材质和光照接口，适合局部修改与定向编辑；而 \texttt{nerfacto} 与 \texttt{splatfacto} 虽然能更快得到可视化结果，但它们的表示更容易把几何、颜色和可见性耦合在一起。对测试图像而言，这种耦合会表现为边缘软化、纹理漂移或背景残留；对后续编辑而言，则意味着很难像编辑网格那样直接修改单独面片、UV 或材质节点。
+
+效率方面，神经渲染在“从输入到第一版结果”的流程上通常比传统显式管线更短，因为它省去了大量手工几何整理与纹理烘焙工作。不过，训练式方法仍然需要一定算力和优化时间，而且结果质量强依赖训练视角数量、相机标定质量和测试视角分布。也就是说，神经渲染提升的是建模自动化，而不是无条件地消除了代价。
+
+最后，本实验还揭示了神经渲染的新问题。第一，稀疏视角下模型容易出现不稳定和细节退化。第二，视角外推时容易产生几何不一致或颜色漂移。第三，表示连续性增强后，模型的编辑接口反而变弱，难以在保持整体一致性的前提下单独调整几何、材质与光照。基于这些现象可以看出，神经渲染更适合作为传统图形学流程的补充与替代通道，而不是对显式建模的完全否定。
 \begin{thebibliography}{99}
 \bibitem{tewari2020state} A. Tewari, O. Fried, J. Thies, V. Sitzmann, S. Lombardi, K. Sunkavalli, R. Martin-Brualla, T. Simon, J. Saragih, M. Nie{\ss}ner, et al. State of the Art on Neural Rendering. Computer Graphics Forum, 39(2), 2020.
 \bibitem{xie2022neuralfields} Y. Xie, T. Takikawa, S. Saito, O. Litany, S. Yan, N. Khan, F. Tombari, J. Tompkin, V. Sitzmann, and S. Sridhar. Neural Fields in Visual Computing and Beyond. Computer Graphics Forum, 41(2), 2022.
