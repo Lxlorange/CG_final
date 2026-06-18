@@ -60,19 +60,71 @@ def sanitize(params: dict) -> dict:
     if not isinstance(look_at, list) or len(look_at) != 3:
         look_at = [0.0, 0.0, 0.0]
     out["look_at"] = [float(x) for x in look_at]
+    keyframes = out.get("keyframes")
+    if isinstance(keyframes, list):
+        clean_keyframes = []
+        for frame in keyframes:
+            if not isinstance(frame, dict):
+                continue
+            clean_keyframes.append(
+                {
+                    "t": clamp(float(frame.get("t", 0.0)), 0.0, 1.0),
+                    "radius": clamp(float(frame.get("radius", out["radius_start"])), 2.5, 6.0),
+                    "elevation_deg": clamp(float(frame.get("elevation_deg", out["elevation_start_deg"])), -20.0, 60.0),
+                    "azimuth_deg": clamp(float(frame.get("azimuth_deg", out["azimuth_start_deg"])), -180.0, 540.0),
+                    "fov_deg": clamp(float(frame.get("fov_deg", out["fov_deg"])), 35.0, 70.0),
+                }
+            )
+        clean_keyframes.sort(key=lambda frame: frame["t"])
+        if len(clean_keyframes) >= 2:
+            clean_keyframes[0]["t"] = 0.0
+            clean_keyframes[-1]["t"] = 1.0
+            out["keyframes"] = clean_keyframes
+        else:
+            out.pop("keyframes", None)
     return out
+
+
+def interpolate_keyframes(keyframes: list[dict], t: float) -> dict:
+    prev_frame = keyframes[0]
+    next_frame = keyframes[-1]
+    for index in range(len(keyframes) - 1):
+        left = keyframes[index]
+        right = keyframes[index + 1]
+        if left["t"] <= t <= right["t"]:
+            prev_frame = left
+            next_frame = right
+            break
+
+    span = max(next_frame["t"] - prev_frame["t"], 1e-8)
+    local_t = clamp((t - prev_frame["t"]) / span, 0.0, 1.0)
+    return {
+        "radius": (1.0 - local_t) * prev_frame["radius"] + local_t * next_frame["radius"],
+        "elevation_deg": (1.0 - local_t) * prev_frame["elevation_deg"] + local_t * next_frame["elevation_deg"],
+        "azimuth_deg": (1.0 - local_t) * prev_frame["azimuth_deg"] + local_t * next_frame["azimuth_deg"],
+        "fov_deg": (1.0 - local_t) * prev_frame["fov_deg"] + local_t * next_frame["fov_deg"],
+    }
 
 
 def make_camera_path(params: dict, render_width: int, render_height: int, matrix_format: str) -> dict:
     params = sanitize(params)
     n = params["num_frames"]
     target = np.asarray(params["look_at"], dtype=np.float64)
+    keyframes = params.get("keyframes")
     cameras = []
     for i in range(n):
         t = 0.0 if n == 1 else i / (n - 1)
-        radius = (1.0 - t) * params["radius_start"] + t * params["radius_end"]
-        azimuth = (1.0 - t) * params["azimuth_start_deg"] + t * params["azimuth_end_deg"]
-        elevation = (1.0 - t) * params["elevation_start_deg"] + t * params["elevation_end_deg"]
+        if keyframes:
+            frame = interpolate_keyframes(keyframes, t)
+            radius = frame["radius"]
+            azimuth = frame["azimuth_deg"]
+            elevation = frame["elevation_deg"]
+            fov = frame["fov_deg"]
+        else:
+            radius = (1.0 - t) * params["radius_start"] + t * params["radius_end"]
+            azimuth = (1.0 - t) * params["azimuth_start_deg"] + t * params["azimuth_end_deg"]
+            elevation = (1.0 - t) * params["elevation_start_deg"] + t * params["elevation_end_deg"]
+            fov = params["fov_deg"]
         origin = camera_position(radius, azimuth, elevation)
         c2w = look_at_c2w(origin, target)
         if matrix_format == "flat":
@@ -84,7 +136,7 @@ def make_camera_path(params: dict, render_width: int, render_height: int, matrix
         cameras.append(
             {
                 "camera_to_world": camera_to_world,
-                "fov": params["fov_deg"],
+                "fov": fov,
                 "aspect": render_width / render_height,
             }
         )
@@ -101,6 +153,7 @@ def make_camera_path(params: dict, render_width: int, render_height: int, matrix
             "motion_summary": params.get("motion_summary", ""),
             "input_text": params.get("input_text", ""),
             "look_at": params.get("look_at", [0.0, 0.0, 0.0]),
+            "has_keyframes": bool(keyframes),
         },
     }
 

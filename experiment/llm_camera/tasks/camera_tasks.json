@@ -25,6 +25,21 @@
       "id": "orbit_pull_back",
       "text": "绕物体半圈并逐渐拉远，形成展示结尾镜头。",
       "expected_type": "orbit_dolly"
+    },
+    {
+      "id": "high_reveal_orbit",
+      "text": "先从高处远景俯视 Lego，缓慢下降到平视高度，然后绕到右前方形成展示视角，整个过程始终看向物体中心。",
+      "expected_type": "compound"
+    },
+    {
+      "id": "closeup_pullback_orbit",
+      "text": "先从正面近景特写开始，随后缓慢拉远，并在拉远过程中向左绕过物体四分之一圈，最后停在左前方的中景构图。",
+      "expected_type": "compound"
+    },
+    {
+      "id": "diagonal_sweep_reveal",
+      "text": "从左前方低角度开始，沿对角线扫到右后方，同时逐渐升高一点点，让物体从低角度动感镜头过渡到稳定展示镜头。",
+      "expected_type": "compound"
     }
   ]
 }

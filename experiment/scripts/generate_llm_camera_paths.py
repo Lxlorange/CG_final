@@ -70,7 +70,7 @@ def main() -> None:
     parser.add_argument("--out-dir", type=Path, default=DEFAULT_OUT)
     parser.add_argument("--base-url", default=os.environ.get("OPENAI_BASE_URL", "https://api.deepseek.com"))
     parser.add_argument("--model", default=os.environ.get("OPENAI_MODEL", "deepseek-chat"))
-    parser.add_argument("--api-key-env", default="OPENAI_API_KEY")
+    parser.add_argument("--api-key-env", default="sk-227432dada3c47e7afac16e2c5253d0a")
     parser.add_argument("--temperature", type=float, default=0.2)
     parser.add_argument("--timeout", type=int, default=60)
     parser.add_argument("--dry-run", action="store_true", help="Write prompts only; do not call API.")

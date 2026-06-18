@@ -27,7 +27,7 @@ def as_matrix(camera_to_world) -> np.ndarray:
 
 def validate_params(params: dict) -> tuple[bool, list[str]]:
     errors = []
-    if params.get("trajectory_type") not in {"orbit", "dolly", "pan", "tilt", "orbit_dolly"}:
+    if params.get("trajectory_type") not in {"orbit", "dolly", "pan", "tilt", "orbit_dolly", "compound"}:
         errors.append("invalid_trajectory_type")
     for key in ["num_frames", "radius_start", "radius_end", "elevation_start_deg", "elevation_end_deg", "azimuth_start_deg", "azimuth_end_deg", "fov_deg"]:
         if key not in params:
@@ -52,6 +52,36 @@ def validate_params(params: dict) -> tuple[bool, list[str]]:
     look_at = params.get("look_at")
     if not isinstance(look_at, list) or len(look_at) != 3:
         errors.append("invalid_look_at")
+    keyframes = params.get("keyframes")
+    if keyframes is not None:
+        if not isinstance(keyframes, list) or len(keyframes) < 2:
+            errors.append("invalid_keyframes")
+        else:
+            last_t = -1.0
+            for frame in keyframes:
+                if not isinstance(frame, dict):
+                    errors.append("invalid_keyframe")
+                    continue
+                try:
+                    t = float(frame.get("t", -1.0))
+                    radius = float(frame.get("radius", -999))
+                    elevation = float(frame.get("elevation_deg", -999))
+                    azimuth = float(frame.get("azimuth_deg", -999))
+                    fov = float(frame.get("fov_deg", params.get("fov_deg", -999)))
+                except (TypeError, ValueError):
+                    errors.append("keyframe_numeric_parse_failed")
+                    continue
+                if not 0.0 <= t <= 1.0 or t < last_t:
+                    errors.append("keyframe_t_out_of_range")
+                if not 2.5 <= radius <= 6.0:
+                    errors.append("keyframe_radius_out_of_range")
+                if not -20.0 <= elevation <= 60.0:
+                    errors.append("keyframe_elevation_out_of_range")
+                if not -180.0 <= azimuth <= 540.0:
+                    errors.append("keyframe_azimuth_out_of_range")
+                if not 35.0 <= fov <= 70.0:
+                    errors.append("keyframe_fov_out_of_range")
+                last_t = t
     return not errors, errors
 
 

@@ -122,21 +122,21 @@ def main() -> None:
     fig.savefig(summary_dir / "comparison.png", dpi=180)
     plt.close(fig)
 
-    fig, axes = plt.subplots(len(methods), 2, figsize=(6.0, 2.4 * len(methods)))
+    fig, axes = plt.subplots(2, len(methods), figsize=(3.2 * len(methods), 5.0))
     if len(methods) == 1:
-        axes = axes[None, :]
-    for row_idx, method_dir in enumerate(methods):
+        axes = axes[:, None]
+    for col_idx, method_dir in enumerate(methods):
         method_rows = [r for r in rows if r["method"] == method_dir.name]
         worst = min(method_rows, key=lambda r: r["psnr"])
         view = int(worst["view"])
         gt = load_rgb(gt_dir / f"gt_{view:03d}.png")
         pred = load_rgb(method_dir / f"pred_{view:03d}.png")
-        axes[row_idx, 0].imshow(gt)
-        axes[row_idx, 0].set_title(f"GT view {view}")
-        axes[row_idx, 0].axis("off")
-        axes[row_idx, 1].imshow(pred)
-        axes[row_idx, 1].set_title(f"{method_dir.name}\nPSNR {worst['psnr']:.2f}, SSIM {worst['ssim']:.3f}")
-        axes[row_idx, 1].axis("off")
+        axes[0, col_idx].imshow(gt)
+        axes[0, col_idx].set_title(f"{method_dir.name}\nGT view {view}", fontsize=9)
+        axes[0, col_idx].axis("off")
+        axes[1, col_idx].imshow(pred)
+        axes[1, col_idx].set_title(f"Prediction\nPSNR {worst['psnr']:.2f}, SSIM {worst['ssim']:.3f}", fontsize=9)
+        axes[1, col_idx].axis("off")
     fig.tight_layout()
     fig.savefig(summary_dir / "failure_cases.png", dpi=180)
     plt.close(fig)
