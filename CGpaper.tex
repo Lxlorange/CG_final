@@ -26,7 +26,7 @@
 \newpage
 
 \begin{abstract}
-神经渲染把三维图形学中的相机投影、可见性建模和体渲染过程与可学习场景表示结合起来，为多视角图像驱动的三维重建和新视角合成提供了新的技术路线。本文围绕 NeRF Synthetic 数据集中的 Lego 场景，比较传统显式重建基线、Nerfacto 和 Splatfacto 三类流程在新视角合成任务中的表现，并进一步设计自然语言相机控制实验，考察大语言模型将镜头描述转换为可渲染相机轨迹的能力。实验结果表明，在 20 个测试视角上，Visual Hull 基线取得 15.62 dB PSNR 和 0.701 SSIM，Nerfacto 提升到 21.13 dB 和 0.873，Splatfacto 进一步提升到 28.28 dB 和 0.955，说明神经场和三维高斯表示能够显著改善受控合成场景的新视角合成质量。在相机控制实验中，规则模板和 LLM 生成的 8 条轨迹均能通过 JSON 解析、参数合法性检查和 Nerfstudio camera path 转换；人工评分显示，LLM 在复合镜头任务中相对单主动作规则近似具有更好的语义符合度。本文最后讨论神经渲染在图像质量、效率、可编辑性和控制性之间的取舍。
+神经渲染把三维图形学中的相机投影、可见性建模和体渲染过程与可学习场景表示结合起来，为多视角图像驱动的三维重建和新视角合成提供了新的技术路线。本文围绕 NeRF Synthetic 数据集中的 Lego 场景，比较传统显式重建基线、Nerfacto 和 Splatfacto 三类流程在新视角合成任务中的表现，并进一步设计自然语言相机控制实验，考察大语言模型将镜头描述转换为可渲染相机轨迹的能力。实验结果表明，在 20 个测试视角上，Visual Hull 基线取得 15.62 dB PSNR 和 0.701 SSIM，Nerfacto 提升到 21.13 dB 和 0.873，Splatfacto 进一步提升到 28.28 dB 和 0.955，说明神经场和三维高斯表示能够显著改善受控合成场景的新视角合成质量。在相机控制实验中，规则模板和 LLM 生成的 8 条轨迹均能通过 JSON 解析、参数合法性检查和 Nerfstudio camera path 转换；人工评分显示，LLM 在复合镜头任务中相对单主动作规则近似具有更好的语义符合度。本文最后讨论神经渲染在图像质量、效率、可编辑性和控制性之间的取舍。本文代码见：\url{https://github.com/Lxlorange/CG_final}。
 \end{abstract}
 
 \begin{keys}
@@ -34,7 +34,7 @@
 \end{keys}
 
 \begin{enabstract}
-Neural rendering combines camera projection, visibility modeling, and volume rendering in computer graphics with learnable scene representations. This paper studies 3D reconstruction and novel view synthesis on the Lego scene from the NeRF Synthetic dataset. We compare a traditional explicit Visual Hull baseline, Nerfacto, and Splatfacto, and further evaluate language-driven camera control by converting natural-language shot descriptions into renderable Nerfstudio camera paths. On 20 test views, Visual Hull obtains 15.62 dB PSNR and 0.701 SSIM, while Nerfacto improves the results to 21.13 dB and 0.873, and Splatfacto achieves 28.28 dB and 0.955. These results show the advantage of neural field and 3D Gaussian representations for controlled novel-view synthesis. In the camera-control experiment, both rule-based and LLM-generated trajectories pass JSON parsing, parameter validation, and camera-path conversion. The LLM-based method can additionally produce keyframed compound trajectories, making it more expressive than single-action rule templates for complex shot descriptions.
+Neural rendering combines camera projection, visibility modeling, and volume rendering in computer graphics with learnable scene representations. This paper studies 3D reconstruction and novel view synthesis on the Lego scene from the NeRF Synthetic dataset. We compare a traditional explicit Visual Hull baseline, Nerfacto, and Splatfacto, and further evaluate language-driven camera control by converting natural-language shot descriptions into renderable Nerfstudio camera paths. On 20 test views, Visual Hull obtains 15.62 dB PSNR and 0.701 SSIM, while Nerfacto improves the results to 21.13 dB and 0.873, and Splatfacto achieves 28.28 dB and 0.955. These results show the advantage of neural field and 3D Gaussian representations for controlled novel-view synthesis. In the camera-control experiment, both rule-based and LLM-generated trajectories pass JSON parsing, parameter validation, and camera-path conversion. The LLM-based method can additionally produce keyframed compound trajectories, making it more expressive than single-action rule templates for complex shot descriptions. The code used in this article can be found in \url{https://github.com/Lxlorange/CG_final}.
 \end{enabstract}
 
 \begin{enkeys}

@@ -1,64 +1,124 @@
 # 计算机图形学结课论文
 
-本文主题调整为“基于神经渲染与大语言模型相机控制的三维场景重建流程研究”。当前已经完成 NeRF Synthetic `lego` 场景上的三流程对比：Visual Hull、Nerfacto、Splatfacto。下一步主线是加入 LLM，将自然语言相机意图转换为 Nerfstudio/3DGS 可执行的相机轨迹。
+本仓库是课程论文“基于神经渲染的三维场景重建与自然语言相机控制研究”的代码、实验产物和论文源码。实验围绕 NeRF Synthetic `lego` 场景展开，包含两条主线：
 
-## 当前结果
+1. 比较 Visual Hull、Nerfacto 和 Splatfacto 在新视角合成任务中的表现。
+2. 比较规则模板与 LLM 将中文镜头描述转换为 Nerfstudio camera path 的能力，并用已训练的 Splatfacto 模型渲染视频。
 
-已完成结果位于 `experiment/outputs/formal/lego/summary/`：
+论文源码为 `CGpaper.tex`，当前 PDF 可由 XeLaTeX 编译生成。
 
-- `summary.json`：PSNR、SSIM、标准差、最差视角等统计结果。
-- `comparison.png`：真实图像、Visual Hull、Nerfacto、Splatfacto 的测试视角对比。
-- `failure_cases.png`：三种方法的最差视角案例。
+## 当前结论
 
-当前论文正文只使用已经完成的数据。未完成的数据或实验均以 `TODO_i` 或 `TODO_LLM_i` 标记。
+### 新视角合成
 
-## TODO 标记说明
+正式统计位于 `experiment/outputs/formal/lego/summary/summary.json`，论文使用 20 个测试视角：
 
-| 标记 | 需要补充的内容 | 用途 | 建议执行方式 |
-| --- | --- | --- | --- |
-| `TODO_1` | LPIPS 指标 | 补全感知相似性评价，避免只依赖 PSNR/SSIM | 在安装 `torch` 与 `lpips` 的环境中运行 `evaluate_folder.py --lpips` 或 `postprocess_multiscene.py --lpips` |
-| `TODO_2` | Nerfacto 与 Splatfacto 的统一渲染时间 | 补全流程效率对比，避免用已保存图片推断渲染耗时 | 在 WSL/Nerfstudio 环境运行 `experiment/wsl/measure_nerfstudio_render_time.sh` |
-| `TODO_3` | 真实场景实验 | 验证真实光照、相机噪声、背景干扰下的稳定性 | 使用 Nerfstudio 官方真实数据，或自采视频后运行 `ns-process-data video` |
-| `TODO_4` | 多合成场景实验 | 验证复杂材质、曲面、细结构和遮挡下的泛化性 | 建议增加 `materials`、`drums`、`ficus`，并复用 `write_multiscene_commands.py` 与 `postprocess_multiscene.py` |
-| `TODO_5` | 统一硬件、软件版本和训练超参数记录 | 提高实验可复现性 | 记录 GPU、CUDA、Nerfstudio、Python、训练迭代数、batch/ray 设置、输出分辨率 |
-| `TODO_6` | 消融实验 | 验证视角数量、训练迭代数或体素分辨率对结果的影响 | 至少选择一种变量，例如训练视角数量或 Nerfstudio 迭代次数 |
+| 方法 | PSNR | SSIM | 说明 |
+| --- | ---: | ---: | --- |
+| Visual Hull | 15.62 | 0.701 | 传统显式几何基线，主要失败于外壳缺失和细节破碎 |
+| Nerfacto | 21.13 | 0.873 | 连续神经辐射场，边缘和高频结构存在软化 |
+| Splatfacto | 28.28 | 0.955 | 本实验中图像质量最高，但局部仍可能出现浮点或颜色偏移 |
 
-## LLM 相机控制实验 TODO
+论文图片已整理到：
 
-新的实验主线见 `experiment/README.md`。核心思想是参考 ChatCam/CineGPT：LLM 不直接生成三维物体或最终图像，而是把自然语言镜头描述翻译为相机轨迹参数，再驱动已经训练好的 NeRF/3DGS 模型渲染。
+- `images/experiments/lego_comparison.png`
+- `images/experiments/lego_failure_cases.png`
 
-| 标记 | 需要补充的内容 | 用途 | 产物 |
-| --- | --- | --- | --- |
-| `TODO_LLM_1` | 阅读并概括 ChatCam | 补充“大模型参与图形学管线”的相关工作 | 论文相关工作段落 |
-| `TODO_LLM_2` | 设计自然语言到 JSON 相机参数的 prompt | 构造 LLM 控制接口 | `experiment/llm_camera/prompts/` |
-| `TODO_LLM_3` | 编写 JSON 到 Nerfstudio camera path 的转换脚本 | 让 LLM 输出可被渲染器执行 | `experiment/scripts/make_camera_path_from_json.py` |
-| `TODO_LLM_4` | 生成规则模板轨迹和 LLM 轨迹 | 对比“无大模型”和“有大模型” | `experiment/outputs/llm_camera/paths/` |
-| `TODO_LLM_5` | 用 Splatfacto 或 Nerfacto 渲染轨迹 | 得到视频或图像序列结果 | `experiment/outputs/llm_camera/renders/` |
-| `TODO_LLM_6` | 统计解析成功率、合法率、连续性、渲染成功率和人工评分 | 评价 LLM 控制是否有效 | `experiment/outputs/llm_camera/summary.json` |
-| `TODO_LLM_7` | 将实验二写入论文 | 形成最终实验与讨论 | `CGpaper.tex` |
+### LLM 相机控制
 
-## 常用命令
+相机控制实验使用 8 条中文镜头任务。规则模板和 LLM 均生成了合法 JSON 与 Nerfstudio camera path，并各自渲染出 8 个视频。
 
-重新生成 `lego` 汇总图表：
+客观统计位于 `experiment/outputs/llm_camera/summary.json`：
+
+| 方法 | 任务数 | JSON 解析率 | 参数合法率 | Camera path 生成率 | 平均连续性 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 规则模板 | 8 | 1.00 | 1.00 | 1.00 | 0.882 |
+| LLM | 8 | 1.00 | 1.00 | 1.00 | 0.897 |
+
+视频输出位于：
+
+- `experiment/outputs/llm_camera/renders/rule/*.mp4`
+- `experiment/outputs/llm_camera/renders/llm/*.mp4`
+
+论文中的主观评分由作者单人完成，用于比较自然语言意图符合度。LLM 平均分为 3.75，规则模板平均分为 2.88；优势主要来自复合镜头任务。
+
+## 目录结构
+
+```text
+.
+├── CGpaper.tex                         # 论文 LaTeX 源码
+├── config.tex                          # 论文格式与宏包配置
+├── images/                             # 论文实际引用图片
+├── experiment/
+│   ├── README.md                       # 实验复现细节
+│   ├── llm_camera/                     # 相机任务与 prompt 模板
+│   ├── scripts/                        # Windows/Python 后处理与评估脚本
+│   ├── wsl/                            # WSL/Nerfstudio 渲染脚本
+│   └── outputs/                        # 实验产物
+└── README.md
+```
+
+## 论文编译
+
+在 Windows PowerShell 中运行：
+
+```powershell
+xelatex -interaction=nonstopmode CGpaper.tex
+xelatex -interaction=nonstopmode CGpaper.tex
+```
+
+当前编译会生成 `CGpaper.pdf`。已知警告主要来自中文字体形状替换和一个很轻微的 overfull hbox，不影响 PDF 输出。
+
+## 复现实验
+
+详细步骤见 `experiment/README.md`。常用命令如下。
+
+重新生成论文使用的 Lego 汇总图：
 
 ```powershell
 python experiment\scripts\make_formal_summary.py --scene lego --max-views 8
 ```
 
-生成多场景 Nerfstudio 脚本：
+重新生成规则轨迹、LLM 轨迹、Nerfstudio camera path 与客观指标：
 
 ```powershell
-python experiment\scripts\write_multiscene_commands.py --scenes lego materials drums --methods nerfacto splatfacto --max-num-iterations 30000 --test-limit 20
+python experiment\scripts\generate_rule_camera_paths.py
+python experiment\scripts\generate_llm_camera_paths.py
+python experiment\scripts\make_camera_path_from_json.py --matrix-format flat
+python experiment\scripts\evaluate_camera_paths.py
 ```
 
-在 WSL 中运行多场景脚本：
+LLM 默认使用 OpenAI-compatible API，当前实验记录的模型为 `deepseek-chat`。运行前需要设置：
+
+```powershell
+$env:OPENAI_API_KEY="你的 API key"
+$env:OPENAI_BASE_URL="https://api.deepseek.com"
+$env:OPENAI_MODEL="deepseek-chat"
+```
+
+在 WSL/Nerfstudio 环境中渲染相机轨迹：
 
 ```bash
-bash /mnt/d/2026_spring/Graphics/final/experiment/wsl/run_multiscene_nerfstudio.sh
+bash experiment/wsl/render_llm_camera_paths.sh \
+  --config /home/orangelxl/CG/nerfstudio/outputs/lego_splatfacto/splatfacto/2026-06-13_124906/config.yml \
+  --render-cwd /home/orangelxl/CG/nerfstudio \
+  --source rule
+
+bash experiment/wsl/render_llm_camera_paths.sh \
+  --config /home/orangelxl/CG/nerfstudio/outputs/lego_splatfacto/splatfacto/2026-06-13_124906/config.yml \
+  --render-cwd /home/orangelxl/CG/nerfstudio \
+  --source llm
 ```
 
-回到 Windows 后处理：
+如果 `config.yml` 中的数据集或 checkpoint 是相对路径，`--render-cwd` 必须指向对应的 Nerfstudio 工作目录，否则可能出现找不到 `datasets/nerf_synthetic/lego/transforms_train.json` 或 checkpoint 的错误。
 
-```powershell
-python experiment\scripts\postprocess_multiscene.py --scenes lego materials drums --methods nerfacto splatfacto --limit 20
-```
+## 未纳入正式结论的内容
+
+以下内容没有作为本文正式定量结论：
+
+- LPIPS 感知指标。
+- Nerfacto 与 Splatfacto 的统一单帧渲染时间。
+- 多场景或真实采集场景实验。
+- 多评价者主观评分一致性检验。
+
+这些内容已在论文局限性中说明。
