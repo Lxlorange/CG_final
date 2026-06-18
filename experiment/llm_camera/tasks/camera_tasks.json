@@ -1,0 +1,30 @@
+{
+  "scene": "lego",
+  "tasks": [
+    {
+      "id": "orbit_full",
+      "text": "围绕物体水平旋转一圈，始终看向物体中心。",
+      "expected_type": "orbit"
+    },
+    {
+      "id": "dolly_in",
+      "text": "从远处缓慢推进到物体前方，最后停在正面特写。",
+      "expected_type": "dolly"
+    },
+    {
+      "id": "pan_left_to_right",
+      "text": "从左向右平移，同时保持相机看向物体中心。",
+      "expected_type": "pan"
+    },
+    {
+      "id": "descend_to_eye_level",
+      "text": "先俯视物体，再下降到接近平视角度。",
+      "expected_type": "tilt"
+    },
+    {
+      "id": "orbit_pull_back",
+      "text": "绕物体半圈并逐渐拉远，形成展示结尾镜头。",
+      "expected_type": "orbit_dolly"
+    }
+  ]
+}

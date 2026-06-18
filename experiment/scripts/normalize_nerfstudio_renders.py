@@ -16,7 +16,16 @@ def natural_key(path: Path):
 
 
 def find_images(src_dir: Path):
-    return sorted((p for p in src_dir.rglob("*") if p.suffix.lower() in IMAGE_EXTS), key=natural_key)
+    rgb_dir = src_dir / "test" / "rgb"
+    if rgb_dir.exists():
+        images = [p for p in rgb_dir.iterdir() if p.suffix.lower() in IMAGE_EXTS]
+    else:
+        test_dir = src_dir / "test"
+        if test_dir.exists():
+            images = [p for p in test_dir.rglob("*") if p.suffix.lower() in IMAGE_EXTS and p.parent.name == "rgb"]
+        else:
+            images = [p for p in src_dir.rglob("*") if p.suffix.lower() in IMAGE_EXTS and p.parent.name == "rgb"]
+    return sorted(images, key=natural_key)
 
 
 def main() -> None:
